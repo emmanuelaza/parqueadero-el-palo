@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { X, Bike, CheckCircle } from 'lucide-react'
+import { X, Bike, CheckCircle, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import {
-  normalizarPlaca, TIPO_LABELS, formatCOP, addDias,
-  generarTiqueteEntrada, formatNumeroTiquete,
+  normalizarPlaca, TIPO_LABELS, formatCOP, addDias, fechaHoyBogota,
+  generarTiqueteEntrada,
 } from '../lib/helpers'
 import { useConfig } from '../context/ConfiguracionContext'
 import type { TarifaTipo, TarifasMap } from '../types'
@@ -31,7 +31,7 @@ interface Props {
 const TIPOS: TarifaTipo[] = ['hora', 'dia', 'mensualidad']
 
 interface MensActiva {
-  fecha_vencimiento: string | null
+  fecha_vencimiento: string
 }
 
 export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose, onConfirm }: Props) {
@@ -44,25 +44,31 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
   const [notas,       setNotas]       = useState('')
   const [loading,     setLoading]     = useState(false)
 
-  const [mensActiva,  setMensActiva]  = useState<MensActiva | null>(null)
+  // null = aún no se ha buscado / no aplica
+  // undefined = no encontrada (nueva mensualidad)
+  // {...} = mensualidad activa encontrada
+  const [mensActiva,   setMensActiva]   = useState<MensActiva | null | undefined>(null)
   const [checkingMens, setCheckingMens] = useState(false)
 
-  // Verifica si hay mensualidad activa cuando tipo = mensualidad y placa tiene chars
+  // Verifica si hay mensualidad vigente (fecha_vencimiento > hoy) para esta placa
   useEffect(() => {
-    if (tipo !== 'mensualidad' || placa.length < 3) {
+    if (tipo !== 'mensualidad' || placa.trim().length < 3) {
       setMensActiva(null)
       return
     }
     setCheckingMens(true)
     const timer = setTimeout(async () => {
+      const hoy = fechaHoyBogota()
       const { data } = await supabase
         .from('motos')
         .select('fecha_vencimiento')
-        .eq('placa', normalizarPlaca(placa))
+        .ilike('placa', normalizarPlaca(placa))
         .eq('tipo', 'mensualidad')
-        .is('hora_salida', null)
+        .gt('fecha_vencimiento', hoy)
+        .order('fecha_vencimiento', { ascending: false })
+        .limit(1)
         .maybeSingle()
-      setMensActiva(data ?? null)
+      setMensActiva(data ? { fecha_vencimiento: data.fecha_vencimiento as string } : undefined)
       setCheckingMens(false)
     }, 400)
     return () => { clearTimeout(timer); setCheckingMens(false) }
@@ -73,26 +79,20 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
     if (!placa.trim()) return
 
     const esMensualidad = tipo === 'mensualidad'
+    const tieneActiva   = esMensualidad && !!mensActiva
 
-    // Confirm if active mensualidad already exists
-    if (esMensualidad && mensActiva) {
-      const vence = mensActiva.fecha_vencimiento
-        ? new Date(mensActiva.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-CO')
-        : 'fecha desconocida'
-      const ok = window.confirm(
-        `${normalizarPlaca(placa)} ya tiene mensualidad activa (vence ${vence}).\n\n¿Registrar nueva mensualidad de todas formas?`
-      )
-      if (!ok) return
-    }
-
-    const monto      = esMensualidad ? tarifasMap.mensualidad : undefined
-    const vencimiento = esMensualidad
+    // Mensualista vigente → entrada sin cobro
+    // Nueva mensualidad → cobrar y asignar vencimiento
+    const monto = esMensualidad
+      ? (tieneActiva ? 0 : tarifasMap.mensualidad)
+      : undefined
+    const vencimiento = esMensualidad && !tieneActiva
       ? addDias(new Date(), 30).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
       : undefined
 
     setLoading(true)
 
-    // Obtener número de tiquete
+    // Número de tiquete
     const { data: numData, error: numError } = await supabase.rpc('siguiente_tiquete')
     if (numError) {
       toast.error('Error generando número de tiquete')
@@ -117,7 +117,7 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
     setLoading(false)
 
     if (ok) {
-      // Auto-print entry ticket
+      // Imprimir tiquete de entrada
       const html = generarTiqueteEntrada({
         numeroTiquete,
         placa:             normalizarPlaca(placa),
@@ -132,6 +132,14 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
       onClose()
     }
   }
+
+  // Texto del botón principal
+  const botonLabel = (() => {
+    if (loading) return 'Registrando…'
+    if (tipo !== 'mensualidad') return 'Registrar entrada'
+    if (mensActiva) return 'Registrar entrada (sin cobro)'
+    return `Cobrar ${formatCOP(tarifasMap.mensualidad)}`
+  })()
 
   return (
     <Overlay onClose={onClose}>
@@ -197,25 +205,36 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
               ))}
             </div>
 
-            {/* Mensualidad info/warning */}
+            {/* Indicador de mensualidad */}
             {tipo === 'mensualidad' && (
-              <div className="mt-2 space-y-1.5">
-                <div className="px-3 py-2 bg-purple-50 border border-purple-200 rounded-xl text-sm text-purple-700">
-                  <span className="font-semibold">{formatCOP(tarifasMap.mensualidad)}</span>
-                  {' '}se cobra ahora · vence en 30 días
-                </div>
+              <div className="mt-2">
                 {checkingMens && (
-                  <div className="px-3 py-1.5 text-xs text-slate-400">Verificando mensualidad…</div>
+                  <div className="px-3 py-2 text-xs text-slate-400">Verificando mensualidad…</div>
                 )}
+
                 {!checkingMens && mensActiva && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-300 rounded-xl text-sm text-green-800">
-                    <CheckCircle size={14} className="shrink-0 text-green-600" />
+                  <div className="flex items-center gap-2 px-3 py-2.5 bg-green-50 border-2 border-green-300 rounded-xl text-sm text-green-800">
+                    <CheckCircle size={16} className="shrink-0 text-green-600" />
                     <span>
-                      <strong>MENS. ACTIVO</strong>
-                      {mensActiva.fecha_vencimiento && (
-                        <> · Vence {new Date(mensActiva.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-CO')}</>
-                      )}
+                      <strong>Mensualista activo</strong>
+                      {' '}hasta {new Date(mensActiva.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-CO')}
                     </span>
+                  </div>
+                )}
+
+                {!checkingMens && mensActiva === undefined && placa.trim().length >= 3 && (
+                  <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 border-2 border-amber-300 rounded-xl text-sm text-amber-800">
+                    <AlertCircle size={16} className="shrink-0 text-amber-600" />
+                    <span>
+                      <strong>Nueva mensualidad:</strong>
+                      {' '}{formatCOP(tarifasMap.mensualidad)} · vence en 30 días
+                    </span>
+                  </div>
+                )}
+
+                {!checkingMens && mensActiva === null && (
+                  <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500">
+                    Escribe la placa para verificar mensualidad
                   </div>
                 )}
               </div>
@@ -275,20 +294,19 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
             </button>
             <button
               type="submit"
-              disabled={loading || !placa.trim()}
-              className="flex-1 py-3 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={loading || !placa.trim() || (tipo === 'mensualidad' && checkingMens)}
+              className={`flex-1 py-3 rounded-xl text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                tipo === 'mensualidad' && mensActiva
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : 'bg-orange-500 hover:bg-orange-600'
+              }`}
             >
-              {loading
-                ? 'Registrando…'
-                : tipo === 'mensualidad'
-                  ? `Cobrar ${formatCOP(tarifasMap.mensualidad)}`
-                  : 'Registrar entrada'
-              }
+              {botonLabel}
             </button>
           </div>
 
           <p className="text-center text-xs text-slate-400">
-            Tiquete #{formatNumeroTiquete(null)} · se imprime al confirmar
+            El tiquete se imprime automáticamente al confirmar
           </p>
         </form>
       </div>

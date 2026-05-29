@@ -34,15 +34,26 @@ export default function Mensualistas() {
 
   const cargar = useCallback(async () => {
     setLoading(true)
-    // Motos activas con tipo mensualidad
+    const hoy = fechaHoyBogota()
+    // Mensualidades vigentes: tipo='mensualidad' Y fecha_vencimiento > hoy
+    // (sin filtrar por hora_salida — un mensualista vigente puede estar dentro o fuera)
     const { data } = await supabase
       .from('motos')
       .select('*')
       .eq('tipo', 'mensualidad')
-      .is('hora_salida', null)
-      .order('fecha_vencimiento')
+      .gt('fecha_vencimiento', hoy)
+      .order('fecha_vencimiento', { ascending: false })
 
-    setMensualistas((data ?? []) as Moto[])
+    // Dedupe por placa: si hay múltiples filas vigentes para la misma placa,
+    // conserva la de fecha_vencimiento más lejana
+    const map = new Map<string, Moto>()
+    for (const m of (data ?? []) as Moto[]) {
+      if (!map.has(m.placa)) map.set(m.placa, m)
+    }
+    const unique = Array.from(map.values()).sort((a, b) =>
+      (a.fecha_vencimiento ?? '').localeCompare(b.fecha_vencimiento ?? '')
+    )
+    setMensualistas(unique)
     setLoading(false)
   }, [])
 
@@ -168,7 +179,7 @@ export default function Mensualistas() {
                   return (
                     <tr key={m.id} className={`border-t border-slate-100 ${colors.bg}`}>
                       <td className="px-4 py-3 text-slate-600 text-center font-mono">
-                        #{m.espacio ?? '—'}
+                        {m.hora_salida === null && m.espacio ? `#${m.espacio}` : '—'}
                       </td>
                       <td className="px-4 py-3 font-bold text-slate-900">{m.placa}</td>
                       <td className="px-4 py-3 text-slate-600 max-w-[120px] truncate">
