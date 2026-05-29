@@ -93,20 +93,29 @@ export default function Configuracion() {
 // ─── Tab General ─────────────────────────────────────────────────────────────
 
 function TabGeneral() {
-  const { nombreParqueadero, totalEspacios, alertaHoras, actualizarConfig } = useConfig()
+  const { nombreParqueadero, totalEspacios, alertaHoras, direccion, horarioTexto, operarioPorDefecto, actualizarConfig } = useConfig()
 
-  const [nombre,   setNombre]   = useState(nombreParqueadero)
-  const [espacios, setEspacios] = useState(String(totalEspacios))
-  const [alerta,   setAlerta]   = useState(String(alertaHoras))
+  const [nombre,    setNombre]    = useState(nombreParqueadero)
+  const [espacios,  setEspacios]  = useState(String(totalEspacios))
+  const [alerta,    setAlerta]    = useState(String(alertaHoras))
+  const [dir,       setDir]       = useState(direccion)
+  const [horario,   setHorario]   = useState(horarioTexto)
+  const [operario,  setOperario]  = useState(operarioPorDefecto)
 
   // Sync with context when it loads
-  useEffect(() => { setNombre(nombreParqueadero) },  [nombreParqueadero])
+  useEffect(() => { setNombre(nombreParqueadero) },      [nombreParqueadero])
   useEffect(() => { setEspacios(String(totalEspacios)) }, [totalEspacios])
-  useEffect(() => { setAlerta(String(alertaHoras))    }, [alertaHoras])
+  useEffect(() => { setAlerta(String(alertaHoras))    },  [alertaHoras])
+  useEffect(() => { setDir(direccion) },                  [direccion])
+  useEffect(() => { setHorario(horarioTexto) },           [horarioTexto])
+  useEffect(() => { setOperario(operarioPorDefecto) },    [operarioPorDefecto])
 
   const [loadingN, setLoadingN] = useState(false)
   const [loadingE, setLoadingE] = useState(false)
   const [loadingA, setLoadingA] = useState(false)
+  const [loadingD, setLoadingD] = useState(false)
+  const [loadingH, setLoadingH] = useState(false)
+  const [loadingO, setLoadingO] = useState(false)
 
   const guardarNombre = async () => {
     if (!nombre.trim()) return
@@ -158,6 +167,27 @@ function TabGeneral() {
     setLoadingA(false)
   }
 
+  const guardarDireccion = async () => {
+    setLoadingD(true)
+    const ok = await actualizarConfig('direccion', dir.trim())
+    if (ok) toast.success('Dirección actualizada')
+    setLoadingD(false)
+  }
+
+  const guardarHorario = async () => {
+    setLoadingH(true)
+    const ok = await actualizarConfig('horario_texto', horario.trim())
+    if (ok) toast.success('Horario actualizado')
+    setLoadingH(false)
+  }
+
+  const guardarOperario = async () => {
+    setLoadingO(true)
+    const ok = await actualizarConfig('operario_defecto', operario.trim())
+    if (ok) toast.success('Operario por defecto actualizado')
+    setLoadingO(false)
+  }
+
   return (
     <div className="space-y-6">
       {/* Nombre */}
@@ -206,7 +236,7 @@ function TabGeneral() {
       {/* Alerta horas */}
       <ConfigCard
         title="Horas para alerta de abandono"
-        desc="Motos que superen este tiempo mostrarán alerta visual en el grid y en el panel superior."
+        desc="Motos que superen este tiempo mostrarán alerta visual en el grid."
       >
         <div className="flex gap-3 items-center">
           <input
@@ -220,6 +250,60 @@ function TabGeneral() {
           />
           <span className="text-sm text-slate-500">horas</span>
           <SaveBtn onClick={guardarAlerta} loading={loadingA} />
+        </div>
+      </ConfigCard>
+
+      {/* Dirección */}
+      <ConfigCard
+        title="Dirección"
+        desc="Se muestra en los tiquetes de entrada y salida."
+      >
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={dir}
+            onChange={e => setDir(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && guardarDireccion()}
+            placeholder="Calle 123 #45-67, Medellín"
+            className="flex-1 px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none"
+          />
+          <SaveBtn onClick={guardarDireccion} loading={loadingD} />
+        </div>
+      </ConfigCard>
+
+      {/* Horario texto */}
+      <ConfigCard
+        title="Horario de atención"
+        desc="Texto libre para mostrar en la configuración y comunicaciones."
+      >
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={horario}
+            onChange={e => setHorario(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && guardarHorario()}
+            placeholder="Lun–Sáb 6am – 10pm"
+            className="flex-1 px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none"
+          />
+          <SaveBtn onClick={guardarHorario} loading={loadingH} />
+        </div>
+      </ConfigCard>
+
+      {/* Operario por defecto */}
+      <ConfigCard
+        title="Operario por defecto"
+        desc='Pre-rellena el campo "Atendido por" en el modal de salida. El operario puede cambiarlo en cada turno.'
+      >
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={operario}
+            onChange={e => setOperario(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && guardarOperario()}
+            placeholder="Nombre del operario"
+            className="flex-1 px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none"
+          />
+          <SaveBtn onClick={guardarOperario} loading={loadingO} />
         </div>
       </ConfigCard>
     </div>

@@ -7,6 +7,7 @@ import {
   formatDuracion,
   normalizarPlaca,
   descargarCSV,
+  formatNumeroTiquete,
   TIPO_LABELS,
 } from '../lib/helpers'
 import type { Moto, TarifaTipo } from '../types'
@@ -72,12 +73,13 @@ export default function Historial() {
     if (!data) return
 
     const typedData = (data as import('../types').Moto[])
-    const headers = ['Fecha','Placa','Propietario','Teléfono','Espacio','Tipo','Entrada','Salida','Duración (h)','Monto','Pagado']
+    const headers = ['Tiquete','Fecha','Placa','Propietario','Teléfono','Espacio','Tipo','Entrada','Salida','Duración (h)','Monto','Método','Atendido por','Pagado']
     const rows = typedData.map(m => {
       const durH = m.hora_salida
         ? ((new Date(m.hora_salida).getTime() - new Date(m.hora_entrada).getTime()) / 3_600_000).toFixed(2)
         : ''
       return [
+        m.numero_tiquete ? formatNumeroTiquete(m.numero_tiquete) : '',
         new Date(m.hora_entrada).toLocaleDateString('es-CO'),
         m.placa,
         m.propietario ?? '',
@@ -88,6 +90,8 @@ export default function Historial() {
         m.hora_salida ? formatFecha(m.hora_salida) : '',
         durH,
         m.monto_cobrado ?? '',
+        m.metodo_pago ?? '',
+        m.atendido_por ?? '',
         m.pagado ? 'Sí' : 'No',
       ]
     })
@@ -209,6 +213,7 @@ export default function Historial() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-left">
+                    <Th>Tiquete</Th>
                     <Th>Placa</Th>
                     <Th>Propietario</Th>
                     <Th>Tipo</Th>
@@ -217,12 +222,16 @@ export default function Historial() {
                     <Th>Salida</Th>
                     <Th>Duración</Th>
                     <Th right>Monto</Th>
-                    <Th>Estado</Th>
+                    <Th>Método</Th>
+                    <Th>Atendido</Th>
                   </tr>
                 </thead>
                 <tbody>
                   {motos.map(m => (
                     <tr key={m.id} className="border-t border-slate-100 hover:bg-slate-50">
+                      <td className="px-4 py-3 text-slate-500 font-mono text-xs">
+                        {m.numero_tiquete ? `#${formatNumeroTiquete(m.numero_tiquete)}` : '—'}
+                      </td>
                       <td className="px-4 py-3 font-bold text-slate-900">{m.placa}</td>
                       <td className="px-4 py-3 text-slate-600 max-w-[120px] truncate">{m.propietario || '—'}</td>
                       <td className="px-4 py-3"><TipoBadge tipo={m.tipo} /></td>
@@ -239,11 +248,11 @@ export default function Historial() {
                       <td className="px-4 py-3 text-right font-semibold text-slate-900">
                         {m.monto_cobrado != null ? formatCOP(m.monto_cobrado) : '—'}
                       </td>
-                      <td className="px-4 py-3">
-                        {m.hora_salida
-                          ? <span className="text-xs font-semibold text-slate-400">Salió</span>
-                          : <span className="text-xs font-semibold text-green-600">Activo</span>
-                        }
+                      <td className="px-4 py-3 text-slate-600 text-xs capitalize">
+                        {m.metodo_pago ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600 text-xs max-w-[80px] truncate">
+                        {m.atendido_por ?? '—'}
                       </td>
                     </tr>
                   ))}

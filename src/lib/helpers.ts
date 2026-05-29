@@ -139,6 +139,173 @@ export function rangoFechas(desde: Date, hasta: Date): string[] {
   return result
 }
 
+/** Formatea número de tiquete con ceros a la izquierda (6 dígitos) */
+export function formatNumeroTiquete(n: number | null | undefined): string {
+  if (n == null) return '------'
+  return String(n).padStart(6, '0')
+}
+
+/** Genera el HTML del tiquete de ENTRADA para impresora térmica 80mm */
+export function generarTiqueteEntrada(params: {
+  numeroTiquete: number
+  placa: string
+  espacio: number | null
+  tipo: TarifaTipo
+  horaEntrada: string | Date
+  nombreParqueadero: string
+  direccion: string
+}): string {
+  const { numeroTiquete, placa, espacio, tipo, horaEntrada, nombreParqueadero, direccion } = params
+  const W       = 32
+  const entrada = new Date(horaEntrada)
+  const fechaStr = entrada.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const horaStr  = entrada.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
+
+  const center = (s: string) => {
+    const pad = Math.max(0, Math.floor((W - s.length) / 2))
+    return ' '.repeat(pad) + s
+  }
+  const row = (label: string, value: string) => {
+    const spaces = W - label.length - value.length
+    return label + ' '.repeat(Math.max(1, spaces)) + value
+  }
+  const eq  = '='.repeat(W)
+  const dsh = '-'.repeat(W)
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; }
+  body {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    width: 302px;
+    padding: 6px 4px;
+    color: #000;
+    background: #fff;
+  }
+  pre { font-family:inherit; font-size:inherit; white-space:pre; margin:0; }
+  @page { size: 80mm auto; margin: 0; }
+</style>
+</head>
+<body>
+<pre>${eq}
+${center(nombreParqueadero)}
+${center(direccion)}
+${eq}
+${center('TIQUETE DE ENTRADA')}
+${row('Tiquete:', '#' + formatNumeroTiquete(numeroTiquete))}
+${row('Fecha:', fechaStr + '  ' + horaStr)}
+${dsh}
+${row('Placa:', placa)}
+${row('Espacio:', '#' + (espacio ?? '—'))}
+${row('Tipo:', TIPO_LABELS[tipo])}
+${dsh}
+${center('*** CONSERVE ESTE TIQUETE ***')}
+${eq}
+</pre>
+<script>
+  window.onload = function() {
+    window.focus();
+    window.print();
+    setTimeout(function(){ window.close(); }, 500);
+  };
+</script>
+</body>
+</html>`
+}
+
+/** Genera el HTML del tiquete de SALIDA para impresora térmica 80mm */
+export function generarTiqueteSalida(params: {
+  numeroTiquete: number | null
+  placa: string
+  espacio: number | null
+  tipo: TarifaTipo
+  horaEntrada: string
+  horaSalida: string | Date
+  monto: number
+  metodoPago: 'efectivo' | 'transferencia' | null
+  atendidoPor: string
+  nombreParqueadero: string
+  direccion: string
+}): string {
+  const { numeroTiquete, placa, espacio, tipo, horaEntrada, horaSalida, monto, metodoPago, atendidoPor, nombreParqueadero, direccion } = params
+  const W      = 32
+  const salida = new Date(horaSalida)
+  const fechaStr   = salida.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const horaStr    = salida.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const entradaStr = formatHora(horaEntrada)
+  const duracion   = formatDuracion(horaEntrada, horaSalida)
+  const montoStr   = formatCOP(monto)
+  const metodoStr  = metodoPago === 'transferencia' ? 'Transferencia' : 'Efectivo'
+
+  const center = (s: string) => {
+    const pad = Math.max(0, Math.floor((W - s.length) / 2))
+    return ' '.repeat(pad) + s
+  }
+  const row = (label: string, value: string) => {
+    const spaces = W - label.length - value.length
+    return label + ' '.repeat(Math.max(1, spaces)) + value
+  }
+  const eq  = '='.repeat(W)
+  const dsh = '-'.repeat(W)
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; }
+  body {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    width: 302px;
+    padding: 6px 4px;
+    color: #000;
+    background: #fff;
+  }
+  pre { font-family:inherit; font-size:inherit; white-space:pre; margin:0; }
+  @page { size: 80mm auto; margin: 0; }
+</style>
+</head>
+<body>
+<pre>${eq}
+${center(nombreParqueadero)}
+${center(direccion)}
+${eq}
+${center('TIQUETE DE SALIDA')}
+${row('Tiquete:', '#' + formatNumeroTiquete(numeroTiquete))}
+${row('Fecha:', fechaStr + '  ' + horaStr)}
+${dsh}
+${row('Placa:', placa)}
+${row('Espacio:', '#' + (espacio ?? '—'))}
+${row('Tipo:', TIPO_LABELS[tipo])}
+${row('Entrada:', entradaStr)}
+${row('Salida:', horaStr)}
+${row('Duración:', duracion)}
+${dsh}
+${row('TOTAL:', montoStr)}
+${tipo !== 'mensualidad' ? row('Método:', metodoStr) : row('Método:', 'Prepagado')}
+${atendidoPor ? row('Atendido por:', atendidoPor) : ''}
+${eq}
+${center('¡Gracias por su visita!')}
+${eq}
+</pre>
+<script>
+  window.onload = function() {
+    window.focus();
+    window.print();
+    setTimeout(function(){ window.close(); }, 500);
+  };
+</script>
+</body>
+</html>`
+}
+
 /** Genera el HTML de un recibo minimalista para impresora térmica 80mm */
 export function generarHTMLRecibo(params: {
   placa: string

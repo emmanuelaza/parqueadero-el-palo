@@ -1,6 +1,12 @@
-import { useState } from 'react'
-import { X, Bike } from 'lucide-react'
-import { normalizarPlaca, TIPO_LABELS, formatCOP, addDias } from '../lib/helpers'
+import { useState, useEffect } from 'react'
+import { X, Bike, CheckCircle } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { supabase } from '../lib/supabase'
+import {
+  normalizarPlaca, TIPO_LABELS, formatCOP, addDias,
+  generarTiqueteEntrada, formatNumeroTiquete,
+} from '../lib/helpers'
+import { useConfig } from '../context/ConfiguracionContext'
 import type { TarifaTipo, TarifasMap } from '../types'
 
 interface Props {
@@ -18,43 +24,113 @@ interface Props {
     monto_cobrado?: number
     pagado?: boolean
     fecha_vencimiento?: string
+    numero_tiquete?: number
   }) => Promise<boolean>
 }
 
 const TIPOS: TarifaTipo[] = ['hora', 'dia', 'mensualidad']
 
+interface MensActiva {
+  fecha_vencimiento: string | null
+}
+
 export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose, onConfirm }: Props) {
+  const { nombreParqueadero, direccion } = useConfig()
+
   const [placa,       setPlaca]       = useState('')
+  const [tipo,        setTipo]        = useState<TarifaTipo>(tipoForzado ?? 'hora')
   const [propietario, setPropietario] = useState('')
   const [telefono,    setTelefono]    = useState('')
-  const [tipo,        setTipo]        = useState<TarifaTipo>(tipoForzado ?? 'hora')
   const [notas,       setNotas]       = useState('')
   const [loading,     setLoading]     = useState(false)
+
+  const [mensActiva,  setMensActiva]  = useState<MensActiva | null>(null)
+  const [checkingMens, setCheckingMens] = useState(false)
+
+  // Verifica si hay mensualidad activa cuando tipo = mensualidad y placa tiene chars
+  useEffect(() => {
+    if (tipo !== 'mensualidad' || placa.length < 3) {
+      setMensActiva(null)
+      return
+    }
+    setCheckingMens(true)
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from('motos')
+        .select('fecha_vencimiento')
+        .eq('placa', normalizarPlaca(placa))
+        .eq('tipo', 'mensualidad')
+        .is('hora_salida', null)
+        .maybeSingle()
+      setMensActiva(data ?? null)
+      setCheckingMens(false)
+    }, 400)
+    return () => { clearTimeout(timer); setCheckingMens(false) }
+  }, [placa, tipo])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!placa.trim()) return
 
     const esMensualidad = tipo === 'mensualidad'
-    const monto         = esMensualidad ? tarifasMap.mensualidad : undefined
-    const vencimiento   = esMensualidad
+
+    // Confirm if active mensualidad already exists
+    if (esMensualidad && mensActiva) {
+      const vence = mensActiva.fecha_vencimiento
+        ? new Date(mensActiva.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-CO')
+        : 'fecha desconocida'
+      const ok = window.confirm(
+        `${normalizarPlaca(placa)} ya tiene mensualidad activa (vence ${vence}).\n\n¿Registrar nueva mensualidad de todas formas?`
+      )
+      if (!ok) return
+    }
+
+    const monto      = esMensualidad ? tarifasMap.mensualidad : undefined
+    const vencimiento = esMensualidad
       ? addDias(new Date(), 30).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
       : undefined
 
     setLoading(true)
+
+    // Obtener número de tiquete
+    const { data: numData, error: numError } = await supabase.rpc('siguiente_tiquete')
+    if (numError) {
+      toast.error('Error generando número de tiquete')
+      setLoading(false)
+      return
+    }
+    const numeroTiquete = numData as number
+
     const ok = await onConfirm({
-      placa:              normalizarPlaca(placa),
-      propietario:        propietario.trim() || undefined,
-      telefono:           telefono.trim()    || undefined,
+      placa:             normalizarPlaca(placa),
+      propietario:       propietario.trim() || undefined,
+      telefono:          telefono.trim()    || undefined,
       tipo,
       espacio,
-      notas:              notas.trim()       || undefined,
-      monto_cobrado:      monto,
-      pagado:             esMensualidad      ? true : undefined,
-      fecha_vencimiento:  vencimiento,
+      notas:             notas.trim()       || undefined,
+      monto_cobrado:     monto,
+      pagado:            esMensualidad      ? true : undefined,
+      fecha_vencimiento: vencimiento,
+      numero_tiquete:    numeroTiquete,
     })
+
     setLoading(false)
-    if (ok) onClose()
+
+    if (ok) {
+      // Auto-print entry ticket
+      const html = generarTiqueteEntrada({
+        numeroTiquete,
+        placa:             normalizarPlaca(placa),
+        espacio,
+        tipo,
+        horaEntrada:       new Date(),
+        nombreParqueadero,
+        direccion,
+      })
+      const win = window.open('', '_blank', 'width=380,height=600,menubar=no,toolbar=no')
+      if (win) { win.document.write(html); win.document.close() }
+      onClose()
+    }
   }
 
   return (
@@ -120,10 +196,28 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
                 </button>
               ))}
             </div>
+
+            {/* Mensualidad info/warning */}
             {tipo === 'mensualidad' && (
-              <div className="mt-2 px-3 py-2 bg-purple-50 border border-purple-200 rounded-xl text-sm text-purple-700">
-                <span className="font-semibold">{formatCOP(tarifasMap.mensualidad)}</span>
-                {' '}se cobra ahora · vence en 30 días
+              <div className="mt-2 space-y-1.5">
+                <div className="px-3 py-2 bg-purple-50 border border-purple-200 rounded-xl text-sm text-purple-700">
+                  <span className="font-semibold">{formatCOP(tarifasMap.mensualidad)}</span>
+                  {' '}se cobra ahora · vence en 30 días
+                </div>
+                {checkingMens && (
+                  <div className="px-3 py-1.5 text-xs text-slate-400">Verificando mensualidad…</div>
+                )}
+                {!checkingMens && mensActiva && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-300 rounded-xl text-sm text-green-800">
+                    <CheckCircle size={14} className="shrink-0 text-green-600" />
+                    <span>
+                      <strong>MENS. ACTIVO</strong>
+                      {mensActiva.fecha_vencimiento && (
+                        <> · Vence {new Date(mensActiva.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-CO')}</>
+                      )}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -131,7 +225,7 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
           {/* Propietario */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">
-              Propietario <span className="text-slate-400 font-normal">(opcional)</span>
+              Nombre <span className="text-slate-400 font-normal">(opcional)</span>
             </label>
             <input
               type="text"
@@ -184,9 +278,18 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
               disabled={loading || !placa.trim()}
               className="flex-1 py-3 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Registrando…' : tipo === 'mensualidad' ? `Cobrar ${formatCOP(tarifasMap.mensualidad)}` : 'Registrar entrada'}
+              {loading
+                ? 'Registrando…'
+                : tipo === 'mensualidad'
+                  ? `Cobrar ${formatCOP(tarifasMap.mensualidad)}`
+                  : 'Registrar entrada'
+              }
             </button>
           </div>
+
+          <p className="text-center text-xs text-slate-400">
+            Tiquete #{formatNumeroTiquete(null)} · se imprime al confirmar
+          </p>
         </form>
       </div>
     </Overlay>

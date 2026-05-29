@@ -7,22 +7,31 @@ export interface ConfiguracionState {
   nombreParqueadero: string
   totalEspacios: number
   alertaHoras: number
+  direccion: string
+  horarioTexto: string
+  operarioPorDefecto: string
   loading: boolean
   actualizarConfig: (clave: string, valor: string) => Promise<boolean>
   recargar: () => void
 }
 
 const DEFAULTS = {
-  nombreParqueadero: PARKING_NAME,
-  totalEspacios:     TOTAL_ESPACIOS,
-  alertaHoras:       8,
+  nombreParqueadero:   PARKING_NAME,
+  totalEspacios:       TOTAL_ESPACIOS,
+  alertaHoras:         8,
+  direccion:           'Medellín, Colombia',
+  horarioTexto:        '',
+  operarioPorDefecto:  '',
 }
 
 export function useConfiguracion(): ConfiguracionState {
-  const [nombreParqueadero, setNombre]   = useState(DEFAULTS.nombreParqueadero)
-  const [totalEspacios,     setEspacios] = useState(DEFAULTS.totalEspacios)
-  const [alertaHoras,       setAlerta]   = useState(DEFAULTS.alertaHoras)
-  const [loading,           setLoading]  = useState(true)
+  const [nombreParqueadero,  setNombre]    = useState(DEFAULTS.nombreParqueadero)
+  const [totalEspacios,      setEspacios]  = useState(DEFAULTS.totalEspacios)
+  const [alertaHoras,        setAlerta]    = useState(DEFAULTS.alertaHoras)
+  const [direccion,          setDireccion] = useState(DEFAULTS.direccion)
+  const [horarioTexto,       setHorario]   = useState(DEFAULTS.horarioTexto)
+  const [operarioPorDefecto, setOperario]  = useState(DEFAULTS.operarioPorDefecto)
+  const [loading,            setLoading]   = useState(true)
 
   const cargar = useCallback(async () => {
     const { data, error } = await supabase
@@ -30,7 +39,6 @@ export function useConfiguracion(): ConfiguracionState {
       .select('clave, valor')
 
     if (error) {
-      // Tabla puede no existir aún (schema_v2.sql pendiente) — usar defaults
       setLoading(false)
       return
     }
@@ -41,6 +49,9 @@ export function useConfiguracion(): ConfiguracionState {
     if (map.nombre_parqueadero) setNombre(map.nombre_parqueadero)
     if (map.total_espacios)     setEspacios(Number(map.total_espacios))
     if (map.alerta_horas)       setAlerta(Number(map.alerta_horas))
+    if (map.direccion)          setDireccion(map.direccion)
+    if (map.horario_texto)      setHorario(map.horario_texto)
+    if (map.operario_defecto !== undefined) setOperario(map.operario_defecto)
 
     setLoading(false)
   }, [])
@@ -75,6 +86,9 @@ export function useConfiguracion(): ConfiguracionState {
     nombreParqueadero,
     totalEspacios,
     alertaHoras,
+    direccion,
+    horarioTexto,
+    operarioPorDefecto,
     loading,
     actualizarConfig,
     recargar: cargar,

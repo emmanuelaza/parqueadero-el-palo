@@ -14,6 +14,7 @@ export interface EntradaDatos {
   monto_cobrado?: number
   pagado?: boolean
   fecha_vencimiento?: string
+  numero_tiquete?: number
 }
 
 export function useParking(totalEspacios: number = TOTAL_ESPACIOS) {
@@ -61,18 +62,19 @@ export function useParking(totalEspacios: number = TOTAL_ESPACIOS) {
 
   const registrarEntrada = async (datos: EntradaDatos): Promise<boolean> => {
     const registro: Record<string, unknown> = {
-      placa:        datos.placa,
-      propietario:  datos.propietario  || null,
-      telefono:     datos.telefono     || null,
-      tipo:         datos.tipo,
-      espacio:      datos.espacio,
-      notas:        datos.notas        || null,
-      hora_entrada: new Date().toISOString(),
-      pagado:       datos.pagado       ?? false,
+      placa:          datos.placa,
+      propietario:    datos.propietario  || null,
+      telefono:       datos.telefono     || null,
+      tipo:           datos.tipo,
+      espacio:        datos.espacio,
+      notas:          datos.notas        || null,
+      hora_entrada:   new Date().toISOString(),
+      pagado:         datos.pagado       ?? false,
     }
 
     if (datos.monto_cobrado !== undefined) registro.monto_cobrado  = datos.monto_cobrado
     if (datos.fecha_vencimiento)           registro.fecha_vencimiento = datos.fecha_vencimiento
+    if (datos.numero_tiquete !== undefined) registro.numero_tiquete = datos.numero_tiquete
 
     const { error } = await supabase.from('motos').insert([registro])
 
@@ -93,6 +95,8 @@ export function useParking(totalEspacios: number = TOTAL_ESPACIOS) {
     motoId: string,
     placa: string,
     monto: number,
+    metodoPago?: 'efectivo' | 'transferencia',
+    atendidoPor?: string,
   ): Promise<boolean> => {
     const { error } = await supabase
       .from('motos')
@@ -100,6 +104,8 @@ export function useParking(totalEspacios: number = TOTAL_ESPACIOS) {
         hora_salida:   new Date().toISOString(),
         monto_cobrado: monto,
         pagado:        monto > 0 ? true : undefined,
+        metodo_pago:   metodoPago   || null,
+        atendido_por:  atendidoPor  || null,
       })
       .eq('id', motoId)
 

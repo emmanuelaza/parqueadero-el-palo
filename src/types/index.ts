@@ -13,6 +13,9 @@ export interface Moto {
   pagado: boolean
   notas: string | null
   fecha_vencimiento: string | null
+  numero_tiquete: number | null
+  metodo_pago: 'efectivo' | 'transferencia' | null
+  atendido_por: string | null
   created_at: string
 }
 

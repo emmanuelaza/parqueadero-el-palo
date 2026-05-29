@@ -134,7 +134,7 @@ function TabHoy() {
         <KpiCard icon={<TrendingUp size={24} className="text-green-600" />}   label="Ticket promedio"   value={todosMov.length > 0 ? formatCOP(totalIngresos / todosMov.length) : '—'} bg="bg-green-50" border="border-green-200" />
       </div>
 
-      {/* Desglose */}
+      {/* Desglose por tipo */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-5">
         <h2 className="font-bold text-slate-800 mb-4">Desglose por tipo</h2>
         <div className="grid grid-cols-3 gap-4">
@@ -147,6 +147,27 @@ function TabHoy() {
           ))}
         </div>
       </div>
+
+      {/* Desglose por método de pago */}
+      {todosMov.some(m => m.metodo_pago) && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-5">
+          <h2 className="font-bold text-slate-800 mb-4">Desglose por método de pago</h2>
+          <div className="grid grid-cols-2 gap-4">
+            {(['efectivo', 'transferencia'] as const).map(mp => {
+              const movs = todosMov.filter(m => m.metodo_pago === mp)
+              return (
+                <div key={mp} className="text-center p-3 bg-slate-50 rounded-xl">
+                  <div className="text-sm font-semibold text-slate-500 mb-1 capitalize">{mp}</div>
+                  <div className="text-xl font-bold text-slate-900">{movs.length}</div>
+                  <div className="text-sm text-slate-600 mt-1">
+                    {formatCOP(movs.reduce((s, m) => s + (m.monto_cobrado ?? 0), 0))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Movimientos */}
       <div className="bg-white rounded-2xl border border-slate-200 mb-6">

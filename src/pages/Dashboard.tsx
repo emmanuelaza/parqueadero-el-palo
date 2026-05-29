@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { RefreshCw, Search, AlertTriangle, X } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { RefreshCw, Search, X } from 'lucide-react'
 import ParkingGrid from '../components/ParkingGrid'
 import EntradaModal from '../components/EntradaModal'
 import SalidaModal from '../components/SalidaModal'
@@ -8,7 +7,7 @@ import { useParking } from '../hooks/useParking'
 import { useTarifas } from '../hooks/useTarifas'
 import { useConfig } from '../context/ConfiguracionContext'
 import { supabase } from '../lib/supabase'
-import { formatCOP, fechaHoyBogota, normalizarPlaca, formatDuracion, diffHoras } from '../lib/helpers'
+import { formatCOP, fechaHoyBogota, normalizarPlaca } from '../lib/helpers'
 import type { EspacioParqueadero } from '../types'
 
 type ModalState =
@@ -24,7 +23,7 @@ export default function Dashboard() {
   const [modal,       setModal]       = useState<ModalState>({ tipo: 'none' })
   const [hoyCobrado,  setHoyCobrado]  = useState<number | null>(null)
   const [searchInput, setSearchInput] = useState('')
-  const [search,      setSearch]      = useState('')   // debounced
+  const [search,      setSearch]      = useState('')
 
   // Debounce search
   useEffect(() => {
@@ -32,23 +31,9 @@ export default function Dashboard() {
     return () => clearTimeout(t)
   }, [searchInput])
 
-  // Show "not found" toast when search has chars and no match
-  useEffect(() => {
-    if (search.length < 2) return
-    const found = espacios.some(e =>
-      e.ocupado && e.moto?.placa === normalizarPlaca(search)
-    )
-    if (!found) toast('Moto no encontrada en el parqueadero', { icon: '🔍' })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search])
-
   const highlightedNumero = search
     ? espacios.find(e => e.ocupado && e.moto?.placa === normalizarPlaca(search))?.numero
     : undefined
-
-  const abandonadosCount = espacios.filter(e =>
-    e.ocupado && e.moto && diffHoras(e.moto.hora_entrada) > alertaHoras
-  ).length
 
   const cargarHoyCobrado = useCallback(async () => {
     const hoy = fechaHoyBogota()
@@ -116,25 +101,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Abandoned alert banner */}
-      {abandonadosCount > 0 && (
-        <div className="flex items-center gap-3 mb-5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-800">
-          <AlertTriangle size={18} className="text-red-500 shrink-0" />
-          <span>
-            <strong>{abandonadosCount} moto{abandonadosCount > 1 ? 's' : ''}</strong>
-            {' '}llevan más de <strong>{alertaHoras} hora{alertaHoras !== 1 ? 's' : ''}</strong> en el parqueadero
-            {espacios
-              .filter(e => e.ocupado && e.moto && diffHoras(e.moto.hora_entrada) > alertaHoras)
-              .map(e => (
-                <span key={e.numero} className="ml-2 font-mono bg-red-100 px-1.5 py-0.5 rounded text-xs">
-                  #{e.numero} {e.moto?.placa} · {formatDuracion(e.moto!.hora_entrada)}
-                </span>
-              ))
-            }
-          </span>
-        </div>
-      )}
-
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <RefreshCw size={32} className="animate-spin text-slate-300" />
@@ -168,8 +134,8 @@ export default function Dashboard() {
           moto={modal.espacio.moto}
           tarifasMap={tarifasMap}
           onClose={closeModal}
-          onConfirm={async (id, placa, monto) => {
-            const ok = await registrarSalida(id, placa, monto)
+          onConfirm={async (id, placa, monto, metodoPago, atendidoPor) => {
+            const ok = await registrarSalida(id, placa, monto, metodoPago, atendidoPor)
             if (ok) cargarHoyCobrado()
             return ok
           }}
