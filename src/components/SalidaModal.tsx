@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Printer, CheckCircle, Clock, Bike } from 'lucide-react'
+import { X, Printer, CheckCircle, Clock, FileText } from 'lucide-react'
 import {
   calcularMonto,
   formatDuracion,
@@ -8,6 +8,7 @@ import {
   TIPO_LABELS,
   generarHTMLRecibo,
 } from '../lib/helpers'
+import { useConfig } from '../context/ConfiguracionContext'
 import type { Moto, TarifasMap } from '../types'
 
 interface Props {
@@ -18,17 +19,18 @@ interface Props {
 }
 
 export default function SalidaModal({ moto, tarifasMap, onClose, onConfirm }: Props) {
+  const { nombreParqueadero } = useConfig()
   const [ahora,   setAhora]   = useState(new Date())
   const [loading, setLoading] = useState(false)
 
-  // Tick every second for live amount
   useEffect(() => {
     const id = setInterval(() => setAhora(new Date()), 1000)
     return () => clearInterval(id)
   }, [])
 
-  const monto    = calcularMonto(moto.hora_entrada, ahora, moto.tipo, tarifasMap)
-  const duracion = formatDuracion(moto.hora_entrada, ahora)
+  const esMensualidad = moto.tipo === 'mensualidad'
+  const monto         = esMensualidad ? 0 : calcularMonto(moto.hora_entrada, ahora, moto.tipo, tarifasMap)
+  const duracion      = formatDuracion(moto.hora_entrada, ahora)
 
   const handleConfirmar = async () => {
     setLoading(true)
@@ -38,20 +40,19 @@ export default function SalidaModal({ moto, tarifasMap, onClose, onConfirm }: Pr
   }
 
   const handleImprimir = () => {
+    if (esMensualidad && monto === 0) return
     const html = generarHTMLRecibo({
-      placa:       moto.placa,
-      propietario: moto.propietario,
-      tipo:        moto.tipo,
-      horaEntrada: moto.hora_entrada,
-      horaSalida:  ahora.toISOString(),
+      placa:              moto.placa,
+      propietario:        moto.propietario,
+      tipo:               moto.tipo,
+      horaEntrada:        moto.hora_entrada,
+      horaSalida:         ahora.toISOString(),
       monto,
-      espacio:     moto.espacio,
+      espacio:            moto.espacio,
+      nombreParqueadero,
     })
     const win = window.open('', '_blank', 'width=380,height=600,menubar=no,toolbar=no')
-    if (win) {
-      win.document.write(html)
-      win.document.close()
-    }
+    if (win) { win.document.write(html); win.document.close() }
   }
 
   return (
@@ -61,7 +62,7 @@ export default function SalidaModal({ moto, tarifasMap, onClose, onConfirm }: Pr
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-              <Bike size={20} className="text-slate-600" />
+              <Clock size={20} className="text-slate-600" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900">Registrar Salida</h2>
@@ -81,44 +82,50 @@ export default function SalidaModal({ moto, tarifasMap, onClose, onConfirm }: Pr
           )}
         </div>
 
+        {/* Notas */}
+        {moto.notas && (
+          <div className="mb-4 flex gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+            <FileText size={15} className="shrink-0 mt-0.5 text-amber-600" />
+            <span>{moto.notas}</span>
+          </div>
+        )}
+
         {/* Detail rows */}
-        <div className="space-y-3 mb-6">
-          <DetailRow
-            icon={<Clock size={16} />}
-            label="Entrada"
-            value={formatFecha(moto.hora_entrada)}
-          />
-          <DetailRow
-            icon={<Clock size={16} />}
-            label="Salida"
-            value={ahora.toLocaleString('es-CO', { hour12: false })}
-          />
-          <DetailRow
-            icon={<span className="text-xs font-bold">⏱</span>}
-            label="Duración"
-            value={<span className="font-mono font-bold text-slate-800">{duracion}</span>}
-          />
-          <DetailRow
-            label="Tarifa"
-            value={TIPO_LABELS[moto.tipo]}
-          />
+        <div className="space-y-2 mb-5">
+          <DetailRow label="Entrada"  value={formatFecha(moto.hora_entrada)} />
+          <DetailRow label="Salida"   value={ahora.toLocaleString('es-CO', { hour12: false })} />
+          <DetailRow label="Duración" value={<span className="font-mono font-bold text-slate-800">{duracion}</span>} />
+          <DetailRow label="Tarifa"   value={TIPO_LABELS[moto.tipo]} />
+          {esMensualidad && moto.fecha_vencimiento && (
+            <DetailRow label="Vence" value={new Date(moto.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-CO')} />
+          )}
         </div>
 
         {/* Monto */}
-        <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4 text-center mb-6">
-          <div className="text-sm text-orange-700 font-semibold mb-1">TOTAL A COBRAR</div>
-          <div className="text-4xl font-bold text-orange-600">{formatCOP(monto)}</div>
-        </div>
+        {esMensualidad ? (
+          <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4 text-center mb-5">
+            <div className="text-sm text-purple-700 font-semibold mb-1">MENSUALIDAD</div>
+            <div className="text-xl font-bold text-purple-700">Sin cobro adicional</div>
+            <div className="text-xs text-purple-500 mt-1">El pago ya fue registrado al entrar</div>
+          </div>
+        ) : (
+          <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4 text-center mb-5">
+            <div className="text-sm text-orange-700 font-semibold mb-1">TOTAL A COBRAR</div>
+            <div className="text-4xl font-bold text-orange-600">{formatCOP(monto)}</div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3">
-          <button
-            onClick={handleImprimir}
-            className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
-          >
-            <Printer size={18} />
-            Recibo
-          </button>
+          {!esMensualidad && (
+            <button
+              onClick={handleImprimir}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+            >
+              <Printer size={18} />
+              Recibo
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -129,10 +136,12 @@ export default function SalidaModal({ moto, tarifasMap, onClose, onConfirm }: Pr
           <button
             onClick={handleConfirmar}
             disabled={loading}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              esMensualidad ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'
+            }`}
           >
             <CheckCircle size={18} />
-            {loading ? 'Procesando…' : 'Cobrar y liberar'}
+            {loading ? 'Procesando…' : esMensualidad ? 'Registrar salida' : 'Cobrar y liberar'}
           </button>
         </div>
       </div>
@@ -140,21 +149,10 @@ export default function SalidaModal({ moto, tarifasMap, onClose, onConfirm }: Pr
   )
 }
 
-function DetailRow({
-  icon,
-  label,
-  value,
-}: {
-  icon?: React.ReactNode
-  label: string
-  value: React.ReactNode
-}) {
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-      <span className="flex items-center gap-2 text-sm text-slate-500">
-        {icon}
-        {label}
-      </span>
+    <div className="flex items-center justify-between py-1.5 border-b border-slate-100 last:border-0">
+      <span className="text-sm text-slate-500">{label}</span>
       <span className="text-sm text-slate-800">{value}</span>
     </div>
   )

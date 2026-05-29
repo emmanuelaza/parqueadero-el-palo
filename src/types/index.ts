@@ -11,7 +11,27 @@ export interface Moto {
   hora_salida: string | null
   monto_cobrado: number | null
   pagado: boolean
+  notas: string | null
+  fecha_vencimiento: string | null
   created_at: string
+}
+
+export interface ConfiguracionRow {
+  id: string
+  clave: string
+  valor: string
+  descripcion: string | null
+  updated_at: string
+}
+
+export interface CajaCierre {
+  id: string
+  fecha: string
+  total_ingresos: number
+  total_motos: number
+  cerrado_por: string | null
+  cerrado_at: string
+  notas: string | null
 }
 
 export interface Tarifa {

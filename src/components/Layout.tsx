@@ -1,14 +1,30 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { LayoutGrid, DollarSign, Clock, Settings, LogOut, Bike } from 'lucide-react'
+import { LayoutGrid, DollarSign, Clock, Settings, LogOut, Bike, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useConfig } from '../context/ConfiguracionContext'
 import toast from 'react-hot-toast'
 
 const NAV_ITEMS = [
-  { to: '/',              icon: LayoutGrid, label: 'Parqueadero' },
-  { to: '/caja',          icon: DollarSign, label: 'Caja del día' },
-  { to: '/historial',     icon: Clock,      label: 'Historial'    },
-  { to: '/configuracion', icon: Settings,   label: 'Configuración' },
+  { to: '/',               icon: LayoutGrid, label: 'Parqueadero'  },
+  { to: '/caja',           icon: DollarSign, label: 'Caja'         },
+  { to: '/mensualistas',   icon: Users,      label: 'Mensualistas' },
+  { to: '/historial',      icon: Clock,      label: 'Historial'    },
+  { to: '/configuracion',  icon: Settings,   label: 'Configuración' },
 ]
+
+function NombreParqueadero() {
+  const { nombreParqueadero } = useConfig()
+  const [linea1, linea2] = nombreParqueadero.split(' ').reduce<[string, string]>(
+    ([a, b], w, i) => i < Math.ceil(nombreParqueadero.split(' ').length / 2) ? [a + ' ' + w, b] : [a, b + ' ' + w],
+    ['', ''],
+  )
+  return (
+    <div>
+      <div className="text-white font-bold text-sm leading-tight">{linea1.trim()}</div>
+      <div className="text-orange-400 font-bold text-sm leading-tight">{linea2.trim() || ' '}</div>
+    </div>
+  )
+}
 
 export default function Layout() {
   const navigate = useNavigate()
@@ -29,10 +45,7 @@ export default function Layout() {
             <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center shrink-0">
               <Bike size={20} className="text-white" />
             </div>
-            <div>
-              <div className="text-white font-bold text-sm leading-tight">El Palo</div>
-              <div className="text-orange-400 font-bold text-sm leading-tight">Parking</div>
-            </div>
+            <NombreParqueadero />
           </div>
         </div>
 

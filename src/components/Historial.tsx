@@ -71,21 +71,28 @@ export default function Historial() {
     const { data } = await query
     if (!data) return
 
-    const headers = ['Placa','Propietario','Teléfono','Tipo','Espacio','Entrada','Salida','Duración','Monto','Pagado']
-    const rows = (data as import('../types').Moto[]).map(m => [
-      m.placa,
-      m.propietario ?? '',
-      m.telefono    ?? '',
-      TIPO_LABELS[m.tipo],
-      m.espacio     ?? '',
-      formatFecha(m.hora_entrada),
-      formatFecha(m.hora_salida),
-      m.hora_salida ? formatDuracion(m.hora_entrada, m.hora_salida) : '',
-      m.monto_cobrado ?? '',
-      m.pagado ? 'Sí' : 'No',
-    ])
+    const typedData = (data as import('../types').Moto[])
+    const headers = ['Fecha','Placa','Propietario','Teléfono','Espacio','Tipo','Entrada','Salida','Duración (h)','Monto','Pagado']
+    const rows = typedData.map(m => {
+      const durH = m.hora_salida
+        ? ((new Date(m.hora_salida).getTime() - new Date(m.hora_entrada).getTime()) / 3_600_000).toFixed(2)
+        : ''
+      return [
+        new Date(m.hora_entrada).toLocaleDateString('es-CO'),
+        m.placa,
+        m.propietario ?? '',
+        m.telefono    ?? '',
+        m.espacio     ?? '',
+        TIPO_LABELS[m.tipo],
+        formatFecha(m.hora_entrada),
+        m.hora_salida ? formatFecha(m.hora_salida) : '',
+        durH,
+        m.monto_cobrado ?? '',
+        m.pagado ? 'Sí' : 'No',
+      ]
+    })
     const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
-    descargarCSV(csv, `historial-el-palo-parking-${new Date().toISOString().slice(0,10)}.csv`)
+    descargarCSV(csv, `historial_${new Date().toISOString().slice(0,10)}.csv`)
   }
 
   const totalPaginas = Math.ceil(total / PAGE_SIZE)

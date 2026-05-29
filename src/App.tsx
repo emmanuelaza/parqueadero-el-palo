@@ -2,16 +2,18 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { supabase } from './lib/supabase'
+import { ConfiguracionProvider } from './context/ConfiguracionContext'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Configuracion from './pages/Configuracion'
+import Mensualistas from './pages/Mensualistas'
 import CajaDelDia from './components/CajaDelDia'
 import Historial from './components/Historial'
 import type { Session } from '@supabase/supabase-js'
 
 function ProtectedRoute() {
-  const [session,  setSession]  = useState<Session | null | undefined>(undefined)
+  const [session, setSession] = useState<Session | null | undefined>(undefined)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -29,7 +31,11 @@ function ProtectedRoute() {
 
   if (!session) return <Navigate to="/login" replace />
 
-  return <Outlet />
+  return (
+    <ConfiguracionProvider>
+      <Outlet />
+    </ConfiguracionProvider>
+  )
 }
 
 export default function App() {
@@ -39,11 +45,7 @@ export default function App() {
         position="top-right"
         toastOptions={{
           duration: 3500,
-          style: {
-            fontFamily: 'inherit',
-            fontSize: '14px',
-            fontWeight: 500,
-          },
+          style: { fontFamily: 'inherit', fontSize: '14px', fontWeight: 500 },
         }}
       />
 
@@ -52,10 +54,11 @@ export default function App() {
 
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="caja"          element={<CajaDelDia />} />
-            <Route path="historial"     element={<Historial />} />
-            <Route path="configuracion" element={<Configuracion />} />
+            <Route index                  element={<Dashboard />}     />
+            <Route path="caja"            element={<CajaDelDia />}    />
+            <Route path="mensualistas"    element={<Mensualistas />}  />
+            <Route path="historial"       element={<Historial />}     />
+            <Route path="configuracion"   element={<Configuracion />} />
           </Route>
         </Route>
 

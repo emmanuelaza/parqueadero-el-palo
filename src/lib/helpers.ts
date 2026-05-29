@@ -118,7 +118,28 @@ export function descargarCSV(contenido: string, nombre: string): void {
   URL.revokeObjectURL(url)
 }
 
-/** Genera el HTML de un recibo para impresora térmica 80mm */
+/** Suma N días a una fecha (Date o ISO string) */
+export function addDias(fecha: string | Date, dias: number): Date {
+  const d = new Date(fecha)
+  d.setDate(d.getDate() + dias)
+  return d
+}
+
+/** Rango de fechas YYYY-MM-DD entre dos fechas, inclusive */
+export function rangoFechas(desde: Date, hasta: Date): string[] {
+  const result: string[] = []
+  const curr = new Date(desde)
+  curr.setHours(0, 0, 0, 0)
+  const fin = new Date(hasta)
+  fin.setHours(23, 59, 59, 999)
+  while (curr <= fin) {
+    result.push(curr.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' }))
+    curr.setDate(curr.getDate() + 1)
+  }
+  return result
+}
+
+/** Genera el HTML de un recibo minimalista para impresora térmica 80mm */
 export function generarHTMLRecibo(params: {
   placa: string
   propietario: string | null
@@ -127,62 +148,74 @@ export function generarHTMLRecibo(params: {
   horaSalida: string
   monto: number
   espacio: number | null
+  nombreParqueadero?: string
 }): string {
-  const { placa, propietario, tipo, horaEntrada, horaSalida, monto, espacio } = params
-  const duracion = formatDuracion(horaEntrada, horaSalida)
+  const { placa, propietario, tipo, horaEntrada, horaSalida, monto, espacio, nombreParqueadero } = params
+  const nombre    = nombreParqueadero ?? PARKING_NAME
+  const duracion  = formatDuracion(horaEntrada, horaSalida)
+  const entrada   = formatHora(horaEntrada)
+  const salida    = formatHora(horaSalida)
+  const fechaStr  = new Date(horaSalida).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const horaStr   = new Date(horaSalida).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const montoStr  = formatCOP(monto)
+  const W         = 32 // character width of the receipt
+
+  const center = (s: string) => {
+    const pad = Math.max(0, Math.floor((W - s.length) / 2))
+    return ' '.repeat(pad) + s
+  }
+  const divider  = '='.repeat(W)
+  const divider2 = '-'.repeat(W)
+  const row      = (label: string, value: string) => {
+    const spaces = W - label.length - value.length
+    return label + ' '.repeat(Math.max(1, spaces)) + value
+  }
 
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin: 0; padding: 0; }
   body {
     font-family: 'Courier New', Courier, monospace;
-    font-size: 13px;
-    width: 76mm;
-    padding: 4mm 3mm;
+    font-size: 12px;
+    line-height: 1.5;
+    width: 302px;
+    padding: 6px 4px;
     color: #000;
+    background: #fff;
   }
-  .center { text-align: center; }
-  .bold   { font-weight: bold; }
-  .big    { font-size: 20px; }
-  .xl     { font-size: 26px; letter-spacing: 2px; }
-  .line   { border-top: 1px dashed #000; margin: 4px 0; }
-  .row    { display: flex; justify-content: space-between; margin: 2px 0; }
-  .label  { color: #555; }
-  .total  { font-size: 18px; font-weight: bold; }
-  .footer { font-size: 11px; color: #666; margin-top: 6px; }
+  pre {
+    font-family: inherit;
+    font-size: inherit;
+    white-space: pre;
+    margin: 0;
+  }
+  @page { size: 80mm auto; margin: 0; }
 </style>
 </head>
 <body>
-<div class="center bold big" style="margin-bottom:2px">EL PALO PARKING</div>
-<div class="center" style="font-size:11px">Medellín, Colombia</div>
-<div class="line"></div>
-
-<div class="center xl bold">${placa}</div>
-${propietario ? `<div class="center" style="font-size:11px;margin-top:2px">${propietario}</div>` : ''}
-
-<div class="line"></div>
-
-<div class="row"><span class="label">Espacio:</span><span>${espacio ?? '—'}</span></div>
-<div class="row"><span class="label">Tipo:</span><span>${TIPO_LABELS[tipo]}</span></div>
-<div class="row"><span class="label">Entrada:</span><span>${formatFecha(horaEntrada)}</span></div>
-<div class="row"><span class="label">Salida:</span><span>${formatFecha(horaSalida)}</span></div>
-<div class="row"><span class="label">Duración:</span><span>${duracion}</span></div>
-
-<div class="line"></div>
-
-<div class="row">
-  <span class="bold">TOTAL A PAGAR</span>
-  <span class="total">${formatCOP(monto)}</span>
-</div>
-
-<div class="line"></div>
-
-<div class="center footer">¡Gracias por su visita!</div>
-<div class="center footer" style="margin-top:2px">Impreso: ${new Date().toLocaleString('es-CO', { hour12: false })}</div>
-
+<pre>${divider}
+${center(nombre)}
+${center(PARKING_CIUDAD)}
+${divider}
+${row('Fecha:', fechaStr + ' ' + horaStr)}
+${divider2}
+${row('Placa:', placa)}
+${propietario ? row('Propiet.:', propietario.substring(0, 18)) : ''}
+${row('Espacio:', '#' + (espacio ?? '—'))}
+${divider2}
+${row('Entrada:', entrada)}
+${row('Salida:', salida)}
+${row('Duración:', duracion)}
+${divider2}
+${row('Tarifa:', TIPO_LABELS[tipo])}
+${row('TOTAL:', montoStr)}
+${divider}
+${center('¡Gracias por su visita!')}
+${divider}
+</pre>
 <script>
   window.onload = function() {
     window.focus();
