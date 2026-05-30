@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { LayoutGrid, DollarSign, Clock, Settings, LogOut, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import LogoIcon from './LogoIcon'
 import toast from 'react-hot-toast'
 
 const NAV_ITEMS = [
@@ -29,7 +30,7 @@ export default function Layout() {
       >
         {/* Logo area */}
         <div className="px-6 py-6 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="pm-logo-icon w-11 h-11 text-xl">P</div>
+          <LogoIcon size={44} />
           <div className="leading-tight">
             <div className="font-extrabold text-[15px] tracking-tight">
               PUNTO MOTO<span style={{ color: 'var(--yellow-400)' }}>.</span>

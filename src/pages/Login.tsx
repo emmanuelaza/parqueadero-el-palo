@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import LogoIcon from '../components/LogoIcon'
 import toast from 'react-hot-toast'
 
 export default function Login() {
@@ -44,7 +45,9 @@ export default function Login() {
         >
           {/* Logo area */}
           <div className="text-center mb-7">
-            <div className="pm-logo-icon w-14 h-14 mx-auto text-2xl mb-4">P</div>
+            <div className="flex justify-center mb-4">
+              <LogoIcon size={64} />
+            </div>
             <h1
               className="text-[26px] font-extrabold leading-none tracking-tight"
               style={{ color: 'var(--blue-900)' }}
