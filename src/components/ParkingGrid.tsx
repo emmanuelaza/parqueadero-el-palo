@@ -3,7 +3,6 @@ import { Plus, AlertTriangle, FileText, Clock } from 'lucide-react'
 import { formatDuracion, diffHoras } from '../lib/helpers'
 import type { EspacioParqueadero, TarifaTipo } from '../types'
 
-// Pill (badge tipo) colors
 const TIPO_BADGE: Record<TarifaTipo, React.CSSProperties> = {
   hora:        { backgroundColor: 'var(--yellow-400)', color: 'var(--blue-900)' },
   dia:         { backgroundColor: 'var(--white)',      color: 'var(--blue-900)' },
@@ -11,9 +10,7 @@ const TIPO_BADGE: Record<TarifaTipo, React.CSSProperties> = {
 }
 
 const TIPO_LABELS: Record<TarifaTipo, string> = {
-  hora:        'HORA',
-  dia:         'DÍA',
-  mensualidad: 'MENS.',
+  hora: 'HORA', dia: 'DÍA', mensualidad: 'MENS.',
 }
 
 interface Props {
@@ -25,22 +22,16 @@ interface Props {
 }
 
 export default function ParkingGrid({
-  espacios,
-  alertaHoras,
-  highlightedNumero,
-  onEspacioVacio,
-  onEspacioOcupado,
+  espacios, alertaHoras, highlightedNumero, onEspacioVacio, onEspacioOcupado,
 }: Props) {
   const [tick, setTick] = useState(0)
   const spaceRefs = useRef<Map<number, HTMLElement>>(new Map())
 
-  // Refresh elapsed times every 60s
   useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 60_000)
     return () => clearInterval(id)
   }, [])
 
-  // Scroll to highlighted space
   useEffect(() => {
     if (!highlightedNumero) return
     const el = spaceRefs.current.get(highlightedNumero)
@@ -48,13 +39,7 @@ export default function ParkingGrid({
   }, [highlightedNumero])
 
   return (
-    <div
-      className="grid"
-      style={{
-        gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-        gap: 10,
-      }}
-    >
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-2.5 md:grid-cols-5 lg:grid-cols-[repeat(auto-fill,minmax(130px,1fr))] lg:gap-2.5">
       {espacios.map(espacio =>
         espacio.ocupado ? (
           <OcupadoCard
@@ -89,10 +74,7 @@ export default function ParkingGrid({
 // ─── Espacio LIBRE ─────────────────────────────────────────────────────────────
 
 function LibreCard({
-  numero,
-  highlighted,
-  onClick,
-  setRef,
+  numero, highlighted, onClick, setRef,
 }: {
   numero: number
   highlighted: boolean
@@ -103,9 +85,8 @@ function LibreCard({
     <button
       ref={setRef as (el: HTMLButtonElement | null) => void}
       onClick={onClick}
-      className="relative bg-white flex flex-col items-center justify-center"
+      className="relative bg-white flex flex-col items-center justify-center h-[100px] lg:h-[130px] active:scale-95 lg:active:scale-100"
       style={{
-        height: 130,
         border: highlighted
           ? '2px dashed var(--blue-700)'
           : '2px dashed var(--gray-100)',
@@ -113,40 +94,25 @@ function LibreCard({
         transition: 'var(--transition)',
         boxShadow: highlighted ? 'var(--shadow-sm)' : 'none',
       }}
-      onMouseEnter={e => {
-        e.currentTarget.style.borderColor = 'var(--blue-700)'
-        e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
-        e.currentTarget.style.transform = 'scale(1.02)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.borderColor = highlighted ? 'var(--blue-700)' : 'var(--gray-100)'
-        e.currentTarget.style.boxShadow = highlighted ? 'var(--shadow-sm)' : 'none'
-        e.currentTarget.style.transform = 'scale(1)'
-      }}
     >
-      {/* Número arriba-izq */}
       <span
-        className="absolute top-2 left-2 text-[11px] font-semibold tabular-nums"
+        className="absolute top-1.5 left-1.5 lg:top-2 lg:left-2 text-[10px] lg:text-[11px] font-semibold tabular-nums"
         style={{ color: 'var(--gray-400)' }}
       >
         #{numero}
       </span>
-
-      {/* Círculo amarillo con + */}
       <div
         className="flex items-center justify-center"
         style={{
-          width: 36,
-          height: 36,
+          width: 28, height: 28,
           borderRadius: '50%',
           backgroundColor: 'var(--yellow-400)',
         }}
       >
-        <Plus size={18} style={{ color: 'var(--blue-900)' }} strokeWidth={2.5} />
+        <Plus size={16} style={{ color: 'var(--blue-900)' }} strokeWidth={2.5} />
       </div>
-
       <span
-        className="text-[11px] font-semibold mt-2 uppercase tracking-wide"
+        className="text-[9px] lg:text-[11px] font-semibold mt-1.5 uppercase tracking-wide"
         style={{ color: 'var(--gray-400)' }}
       >
         Libre
@@ -158,12 +124,7 @@ function LibreCard({
 // ─── Espacio OCUPADO ───────────────────────────────────────────────────────────
 
 function OcupadoCard({
-  espacio,
-  tick,
-  alertaHoras,
-  highlighted,
-  onClick,
-  setRef,
+  espacio, tick, alertaHoras, highlighted, onClick, setRef,
 }: {
   espacio: EspacioParqueadero
   tick: number
@@ -191,36 +152,26 @@ function OcupadoCard({
     <button
       ref={setRef as (el: HTMLButtonElement | null) => void}
       onClick={onClick}
-      title={esAbandonado ? `Lleva ${formatDuracion(moto.hora_entrada)} — posible abandono` : undefined}
-      className={`relative text-left ${esAbandonado ? 'pm-animate-pulse-border' : ''}`}
+      title={esAbandonado ? `Lleva ${formatDuracion(moto.hora_entrada)}` : undefined}
+      className={`relative text-left h-[100px] lg:h-[130px] p-2 lg:p-3 active:scale-95 lg:active:scale-100 ${esAbandonado ? 'pm-animate-pulse-border' : ''}`}
       style={{
-        height: 130,
         background,
         borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow-md)',
-        padding: 12,
         border: highlighted ? '2px solid var(--yellow-400)' : 'none',
         transition: 'var(--transition)',
       }}
-      onMouseEnter={e => {
-        e.currentTarget.style.filter = 'brightness(1.08)'
-        e.currentTarget.style.transform = 'scale(1.02)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.filter = 'brightness(1)'
-        e.currentTarget.style.transform = 'scale(1)'
-      }}
     >
-      {/* Top row: número + badge */}
+      {/* Top row */}
       <div className="flex items-start justify-between">
         <span
-          className="text-[11px] font-bold tabular-nums"
+          className="text-[10px] lg:text-[11px] font-bold tabular-nums"
           style={{ color: 'rgba(255,255,255,0.5)' }}
         >
           #{numero}
         </span>
         <span
-          className="px-1.5 py-0.5 text-[10px] font-bold"
+          className="px-1 lg:px-1.5 py-0.5 text-[9px] lg:text-[10px] font-bold"
           style={{
             ...(vencida
               ? { backgroundColor: 'var(--danger)', color: 'var(--white)' }
@@ -234,16 +185,16 @@ function OcupadoCard({
       </div>
 
       {/* Center: placa + nombre */}
-      <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2">
+      <div className="absolute left-2 right-2 lg:left-3 lg:right-3 top-1/2 -translate-y-1/2">
         <div
-          className="font-mono-brand text-white text-[17px] leading-none tracking-wider truncate"
+          className="text-white text-[14px] lg:text-[17px] leading-none tracking-wider truncate font-bold"
           style={{ fontFamily: '"JetBrains Mono", "Courier New", monospace' }}
         >
           {moto.placa}
         </div>
         {moto.propietario && (
           <div
-            className="text-[10.5px] truncate mt-1 font-medium"
+            className="text-[10px] lg:text-[10.5px] truncate mt-1 font-medium"
             style={{ color: 'rgba(255,255,255,0.7)' }}
           >
             {moto.propietario}
@@ -251,20 +202,19 @@ function OcupadoCard({
         )}
       </div>
 
-      {/* Bottom row: tiempo + notas */}
-      <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between">
+      {/* Bottom row */}
+      <div className="absolute bottom-1.5 left-2 right-2 lg:bottom-2.5 lg:left-3 lg:right-3 flex items-end justify-between">
         <div
-          className="flex items-center gap-1 text-[11px] font-semibold tabular-nums"
+          className="flex items-center gap-1 text-[10px] lg:text-[11px] font-semibold tabular-nums"
           style={{ color: esAbandonado ? '#FECACA' : 'rgba(255,255,255,0.6)' }}
         >
-          <Clock size={10} />
+          <Clock size={9} />
           {formatDuracion(moto.hora_entrada)}
         </div>
-
         {esAbandonado ? (
-          <AlertTriangle size={13} style={{ color: '#FCA5A5' }} />
+          <AlertTriangle size={12} style={{ color: '#FCA5A5' }} />
         ) : moto.notas ? (
-          <FileText size={11} style={{ color: 'rgba(255,255,255,0.55)' }} />
+          <FileText size={10} style={{ color: 'rgba(255,255,255,0.55)' }} />
         ) : null}
       </div>
     </button>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw, Search, X, LayoutGrid, Bike, CheckCircle2 } from 'lucide-react'
 import ParkingGrid from '../components/ParkingGrid'
 import Topbar from '../components/Topbar'
+import PageHeader from '../components/PageHeader'
 import EntradaModal from '../components/EntradaModal'
 import SalidaModal from '../components/SalidaModal'
 import { useParking } from '../hooks/useParking'
@@ -21,10 +22,11 @@ export default function Dashboard() {
   const { espacios, loading, registrarEntrada, registrarSalida, recargar } = useParking(totalEspacios)
   const { tarifasMap } = useTarifas()
 
-  const [modal,       setModal]       = useState<ModalState>({ tipo: 'none' })
-  const [hoyCobrado,  setHoyCobrado]  = useState<number | null>(null)
-  const [searchInput, setSearchInput] = useState('')
-  const [search,      setSearch]      = useState('')
+  const [modal,             setModal]             = useState<ModalState>({ tipo: 'none' })
+  const [hoyCobrado,        setHoyCobrado]        = useState<number | null>(null)
+  const [searchInput,       setSearchInput]       = useState('')
+  const [search,            setSearch]            = useState('')
+  const [mobileSearchOpen,  setMobileSearchOpen]  = useState(false)
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput), 300)
@@ -38,10 +40,7 @@ export default function Dashboard() {
   const cargarHoyCobrado = useCallback(async () => {
     const hoy = fechaHoyBogota()
     const { data } = await supabase
-      .from('caja_diaria')
-      .select('total_ingresos')
-      .eq('fecha', hoy)
-      .maybeSingle()
+      .from('caja_diaria').select('total_ingresos').eq('fecha', hoy).maybeSingle()
     setHoyCobrado(data?.total_ingresos ?? 0)
   }, [])
 
@@ -52,56 +51,14 @@ export default function Dashboard() {
   const ocupados = espacios.filter(e => e.ocupado).length
   const libres   = espacios.length - ocupados
 
-  // Topbar right slot: search + cobrado + recargar
-  const topbarRight = (
+  // ── Desktop search (in Topbar right slot) ───────────────────────────────
+  const desktopRight = (
     <>
-      <div className="relative">
-        <Search
-          size={15}
-          className="absolute left-3 top-1/2 -translate-y-1/2"
-          style={{ color: 'var(--blue-700)' }}
-        />
-        <input
-          type="text"
-          value={searchInput}
-          onChange={e => setSearchInput(e.target.value)}
-          onKeyDown={e => e.key === 'Escape' && setSearchInput('')}
-          placeholder="Buscar placa..."
-          style={{
-            width: 240,
-            paddingLeft: 36,
-            paddingRight: searchInput ? 32 : 14,
-            paddingTop: 8,
-            paddingBottom: 8,
-            border: '1.5px solid var(--gray-100)',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: 14,
-            textTransform: 'uppercase',
-            outline: 'none',
-            letterSpacing: '0.04em',
-            fontWeight: 600,
-            color: 'var(--blue-900)',
-          }}
-          onFocus={e => {
-            e.currentTarget.style.borderColor = 'var(--blue-700)'
-            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(27,47,190,0.1)'
-          }}
-          onBlur={e => {
-            e.currentTarget.style.borderColor = 'var(--gray-100)'
-            e.currentTarget.style.boxShadow = 'none'
-          }}
-        />
-        {searchInput && (
-          <button
-            onClick={() => setSearchInput('')}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2"
-            style={{ color: 'var(--gray-400)' }}
-          >
-            <X size={14} />
-          </button>
-        )}
-      </div>
-
+      <DesktopSearchInput
+        value={searchInput}
+        onChange={setSearchInput}
+        onClear={() => setSearchInput('')}
+      />
       <button
         onClick={recargar}
         disabled={loading}
@@ -111,6 +68,7 @@ export default function Dashboard() {
           border: '1.5px solid var(--gray-100)',
           borderRadius: 'var(--radius-sm)',
           color: 'var(--blue-700)',
+          minWidth: 40, minHeight: 40,
         }}
       >
         <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
@@ -118,27 +76,81 @@ export default function Dashboard() {
     </>
   )
 
+  // ── Mobile compact controls (icon buttons) ───────────────────────────────
+  const mobileControls = (
+    <>
+      <IconBtn ariaLabel="Buscar" onClick={() => setMobileSearchOpen(true)}>
+        <Search size={18} />
+      </IconBtn>
+      <IconBtn ariaLabel="Recargar" onClick={recargar}>
+        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+      </IconBtn>
+    </>
+  )
+
   return (
     <>
-      <Topbar title="Parqueadero" right={topbarRight} />
+      <Topbar title="Parqueadero" right={desktopRight} />
 
-      <div className="p-6">
-        {/* Stats row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      {/* Mobile expandable search overlay */}
+      {mobileSearchOpen && (
+        <div
+          className="lg:hidden sticky top-14 z-30 bg-white px-3 py-2 flex items-center gap-2 pm-animate-fade-in"
+          style={{ borderBottom: '1px solid var(--gray-100)' }}
+        >
+          <div className="relative flex-1">
+            <Search
+              size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2"
+              style={{ color: 'var(--blue-700)' }}
+            />
+            <input
+              autoFocus
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              placeholder="Buscar placa..."
+              className="w-full"
+              style={{
+                paddingLeft: 36, paddingRight: 14,
+                paddingTop: 10, paddingBottom: 10,
+                border: '1.5px solid var(--blue-700)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 15, fontWeight: 600,
+                textTransform: 'uppercase', letterSpacing: '0.04em',
+                outline: 'none', color: 'var(--blue-900)',
+              }}
+            />
+          </div>
+          <button
+            onClick={() => { setMobileSearchOpen(false); setSearchInput('') }}
+            className="p-2"
+            style={{ color: 'var(--gray-600)', minWidth: 44, minHeight: 44 }}
+            aria-label="Cerrar búsqueda"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
+      <div className="p-3 lg:p-6">
+        <PageHeader title="Parqueadero" right={mobileControls} />
+
+        {/* Stats row — 3 cols always */}
+        <div className="grid grid-cols-3 gap-2 lg:gap-4 mb-4 lg:mb-6">
           <StatCard
-            icon={<LayoutGrid size={22} style={{ color: 'var(--blue-900)' }} />}
-            label="ESPACIOS TOTALES"
+            icon={<LayoutGrid className="w-4 h-4 lg:w-5 lg:h-5" style={{ color: 'var(--blue-900)' }} />}
+            label="TOTAL"
             value={espacios.length}
             accent="yellow"
           />
           <StatCard
-            icon={<Bike size={22} style={{ color: 'var(--blue-700)' }} />}
+            icon={<Bike className="w-4 h-4 lg:w-5 lg:h-5" style={{ color: 'var(--blue-700)' }} />}
             label="OCUPADOS"
             value={ocupados}
             accent="blue"
           />
           <StatCard
-            icon={<CheckCircle2 size={22} style={{ color: 'var(--success)' }} />}
+            icon={<CheckCircle2 className="w-4 h-4 lg:w-5 lg:h-5" style={{ color: 'var(--success)' }} />}
             label="LIBRES"
             value={libres}
             accent="green"
@@ -147,7 +159,7 @@ export default function Dashboard() {
 
         {hoyCobrado !== null && (
           <div
-            className="mb-5 px-5 py-3 flex items-center justify-between"
+            className="mb-4 lg:mb-5 px-4 py-2.5 lg:px-5 lg:py-3 flex items-center justify-between"
             style={{
               backgroundColor: 'var(--white)',
               border: '1px solid var(--gray-100)',
@@ -156,12 +168,12 @@ export default function Dashboard() {
             }}
           >
             <span
-              className="text-xs font-semibold uppercase tracking-wider"
+              className="text-[10px] lg:text-xs font-semibold uppercase tracking-wider"
               style={{ color: 'var(--gray-400)' }}
             >
               Cobrado hoy
             </span>
-            <span className="text-xl font-extrabold" style={{ color: 'var(--blue-900)' }}>
+            <span className="text-base lg:text-xl font-extrabold" style={{ color: 'var(--blue-900)' }}>
               {formatCOP(hoyCobrado)}
             </span>
           </div>
@@ -211,11 +223,73 @@ export default function Dashboard() {
   )
 }
 
+function DesktopSearchInput({
+  value, onChange, onClear,
+}: { value: string; onChange: (v: string) => void; onClear: () => void }) {
+  return (
+    <div className="relative">
+      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--blue-700)' }} />
+      <input
+        type="text"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onKeyDown={e => e.key === 'Escape' && onClear()}
+        placeholder="Buscar placa..."
+        style={{
+          width: 240,
+          paddingLeft: 36, paddingRight: value ? 32 : 14,
+          paddingTop: 8, paddingBottom: 8,
+          border: '1.5px solid var(--gray-100)',
+          borderRadius: 'var(--radius-sm)',
+          fontSize: 14, fontWeight: 600,
+          textTransform: 'uppercase', letterSpacing: '0.04em',
+          outline: 'none', color: 'var(--blue-900)',
+        }}
+        onFocus={e => {
+          e.currentTarget.style.borderColor = 'var(--blue-700)'
+          e.currentTarget.style.boxShadow   = '0 0 0 3px rgba(27,47,190,0.1)'
+        }}
+        onBlur={e => {
+          e.currentTarget.style.borderColor = 'var(--gray-100)'
+          e.currentTarget.style.boxShadow   = 'none'
+        }}
+      />
+      {value && (
+        <button
+          onClick={onClear}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2"
+          style={{ color: 'var(--gray-400)' }}
+        >
+          <X size={14} />
+        </button>
+      )}
+    </div>
+  )
+}
+
+function IconBtn({ onClick, ariaLabel, children }: {
+  onClick: () => void; ariaLabel: string; children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className="flex items-center justify-center transition-colors"
+      style={{
+        width: 40, height: 40,
+        border: '1.5px solid var(--gray-100)',
+        borderRadius: 'var(--radius-sm)',
+        color: 'var(--blue-700)',
+        backgroundColor: 'var(--white)',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
 function StatCard({
-  icon,
-  label,
-  value,
-  accent,
+  icon, label, value, accent,
 }: {
   icon: React.ReactNode
   label: string
@@ -226,7 +300,6 @@ function StatCard({
     accent === 'yellow' ? 'var(--yellow-400)' :
     accent === 'blue'   ? 'var(--blue-700)'   :
                           'var(--success)'
-
   const valueColor =
     accent === 'yellow' ? 'var(--blue-900)' :
     accent === 'blue'   ? 'var(--blue-700)' :
@@ -234,33 +307,43 @@ function StatCard({
 
   return (
     <div
-      className="bg-white flex items-center gap-4"
+      className="bg-white flex flex-col lg:flex-row lg:items-center gap-1.5 lg:gap-4 p-3 lg:p-5"
       style={{
-        padding: '20px 24px',
-        borderRadius: 'var(--radius-lg)',
+        borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow-sm)',
         borderLeft: `4px solid ${accentColor}`,
       }}
     >
-      <div
-        className="shrink-0 flex items-center justify-center"
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 'var(--radius-md)',
-          backgroundColor: 'var(--gray-50)',
-        }}
-      >
-        {icon}
-      </div>
-      <div>
+      <div className="flex items-center gap-1.5 lg:gap-0">
         <div
-          className="text-[11px] font-semibold uppercase mb-1"
+          className="hidden lg:flex shrink-0 items-center justify-center"
+          style={{
+            width: 44, height: 44,
+            borderRadius: 'var(--radius-md)',
+            backgroundColor: 'var(--gray-50)',
+          }}
+        >
+          {icon}
+        </div>
+        <div className="lg:hidden">{icon}</div>
+        <div
+          className="lg:hidden text-[10px] font-semibold uppercase truncate"
+          style={{ color: 'var(--gray-400)', letterSpacing: '0.05em' }}
+        >
+          {label}
+        </div>
+      </div>
+      <div className="min-w-0">
+        <div
+          className="hidden lg:block text-[11px] font-semibold uppercase mb-1"
           style={{ color: 'var(--gray-400)', letterSpacing: '0.06em' }}
         >
           {label}
         </div>
-        <div className="text-3xl font-extrabold leading-none tabular-nums" style={{ color: valueColor }}>
+        <div
+          className="text-2xl lg:text-3xl font-extrabold leading-none tabular-nums"
+          style={{ color: valueColor }}
+        >
           {value}
         </div>
       </div>

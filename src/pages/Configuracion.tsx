@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Save, AlertTriangle, SlidersHorizontal, DollarSign, Clock } from 'lucide-react'
 import Topbar from '../components/Topbar'
+import PageHeader from '../components/PageHeader'
 import Tarifas from '../components/Tarifas'
 import Horarios from '../components/Horarios'
 import { useTarifas } from '../hooks/useTarifas'
@@ -30,9 +31,11 @@ export default function Configuracion() {
     <>
       <Topbar title="Configuración" />
 
-      <div className="p-6 max-w-3xl">
+      <div className="p-3 lg:p-6 max-w-3xl">
+        <PageHeader title="Configuración" subtitle="Ajustes generales, tarifas y horarios" />
+
         {/* Tabs */}
-        <div className="flex gap-6 mb-8" style={{ borderBottom: '1px solid var(--gray-100)' }}>
+        <div className="flex gap-4 lg:gap-6 mb-6 lg:mb-8 overflow-x-auto" style={{ borderBottom: '1px solid var(--gray-100)' }}>
           {([
             { key: 'general',  icon: SlidersHorizontal, label: 'General'  },
             { key: 'tarifas',  icon: DollarSign,        label: 'Tarifas'  },
@@ -309,12 +312,14 @@ function ConfigInput({
         width,
         border: '1.5px solid var(--gray-100)',
         borderRadius: 'var(--radius-sm)',
-        padding: '10px 14px',
-        fontSize: 14,
+        padding: '11px 14px',
+        fontSize: 15,
         outline: 'none',
         textAlign: center ? ('center' as const) : ('left' as const),
         fontWeight: center ? 700 : 500,
         color: 'var(--blue-900)',
+        minHeight: 44,
+        minWidth: 0,
       }}
       onFocus={e => {
         e.currentTarget.style.borderColor = 'var(--blue-700)'
@@ -333,13 +338,14 @@ function SaveBtn({ onClick, loading }: { onClick: () => void; loading: boolean }
     <button
       onClick={onClick}
       disabled={loading}
-      className="flex items-center gap-1.5 font-semibold transition-all disabled:opacity-50 text-sm"
+      className="flex items-center justify-center gap-1.5 font-semibold transition-all disabled:opacity-50 text-sm shrink-0"
       style={{
-        padding: '10px 16px',
+        padding: '11px 16px',
         backgroundColor: 'var(--blue-700)',
         color: 'var(--white)',
         borderRadius: 'var(--radius-sm)',
         border: 'none',
+        minHeight: 44,
       }}
     >
       <Save size={14} />

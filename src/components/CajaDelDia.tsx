@@ -4,6 +4,7 @@ import {
   Lock, CheckCircle, BarChart2,
 } from 'lucide-react'
 import Topbar from './Topbar'
+import PageHeader from './PageHeader'
 import { supabase } from '../lib/supabase'
 import {
   formatCOP, formatFecha, fechaHoyBogota,
@@ -22,9 +23,11 @@ export default function CajaDelDia() {
     <>
       <Topbar title="Caja" />
 
-      <div className="p-6 max-w-6xl">
+      <div className="p-3 lg:p-6 max-w-6xl">
+        <PageHeader title="Caja" />
+
         {/* Tabs */}
-        <div className="flex gap-6 mb-6" style={{ borderBottom: '1px solid var(--gray-100)' }}>
+        <div className="flex gap-4 lg:gap-6 mb-4 lg:mb-6 overflow-x-auto" style={{ borderBottom: '1px solid var(--gray-100)' }}>
           {([
             { key: 'hoy',    label: 'Hoy'         },
             { key: 'semana', label: 'Esta semana' },
@@ -35,7 +38,7 @@ export default function CajaDelDia() {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className="pb-3 text-sm transition-colors"
+                className="pb-3 text-[13px] lg:text-sm transition-colors whitespace-nowrap"
                 style={{
                   color: active ? 'var(--blue-700)' : 'var(--gray-400)',
                   fontWeight: active ? 600 : 500,
@@ -138,7 +141,7 @@ function TabHoy() {
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 mb-4 lg:mb-6">
         <KpiCard
           icon={<DollarSign size={20} style={{ color: 'var(--blue-700)' }} />}
           label="TOTAL"
@@ -170,25 +173,27 @@ function TabHoy() {
       </div>
 
       {/* Desglose por tipo */}
-      <Card className="mb-5">
-        <h2 className="text-sm font-bold mb-4" style={{ color: 'var(--blue-900)' }}>
+      <Card className="mb-4 lg:mb-5">
+        <h2 className="text-sm font-bold mb-3 lg:mb-4" style={{ color: 'var(--blue-900)' }}>
           Desglose por tipo de tarifa
         </h2>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-2 lg:gap-4">
           {resumenPorTipo.map(r => (
             <div
               key={r.tipo}
-              className="text-center p-3"
+              className="text-center p-2 lg:p-3"
               style={{ backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius-md)' }}
             >
               <div
-                className="text-[11px] font-semibold uppercase mb-1"
+                className="text-[10px] lg:text-[11px] font-semibold uppercase mb-1"
                 style={{ color: 'var(--gray-400)', letterSpacing: '0.06em' }}
               >
                 {TIPO_LABELS[r.tipo]}
               </div>
-              <div className="text-xl font-extrabold" style={{ color: 'var(--blue-900)' }}>{r.cantidad}</div>
-              <div className="text-[13px] mt-1" style={{ color: 'var(--gray-600)' }}>
+              <div className="text-lg lg:text-xl font-extrabold" style={{ color: 'var(--blue-900)' }}>
+                {r.cantidad}
+              </div>
+              <div className="text-[12px] lg:text-[13px] mt-0.5 lg:mt-1 truncate" style={{ color: 'var(--gray-600)' }}>
                 {formatCOP(r.total)}
               </div>
             </div>
@@ -198,15 +203,11 @@ function TabHoy() {
 
       {/* Movimientos */}
       <Card>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3 lg:mb-4">
           <h2 className="text-sm font-bold" style={{ color: 'var(--blue-900)' }}>
             Movimientos de hoy
           </h2>
-          <button
-            onClick={cargar}
-            disabled={loading}
-            style={{ color: 'var(--gray-400)' }}
-          >
+          <button onClick={cargar} disabled={loading} style={{ color: 'var(--gray-400)', padding: 4 }}>
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -216,52 +217,85 @@ function TabHoy() {
         ) : todosMov.length === 0 ? (
           <div className="py-8 text-center text-sm" style={{ color: 'var(--gray-400)' }}>Sin movimientos hoy</div>
         ) : (
-          <div className="overflow-x-auto -mx-5">
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ backgroundColor: 'var(--gray-50)' }}>
-                  <Th>Placa</Th><Th>Propietario</Th><Th>Tipo</Th>
-                  <Th>Entrada</Th><Th>Salida</Th><Th>Método</Th><Th right>Monto</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {todosMov.map(m => (
-                  <tr
-                    key={m.id}
-                    className="hover:bg-[var(--gray-50)] transition-colors"
-                    style={{ borderTop: '1px solid var(--gray-50)' }}
-                  >
-                    <td className="px-4 py-2.5 font-bold font-mono" style={{ color: 'var(--blue-900)' }}>{m.placa}</td>
-                    <td className="px-4 py-2.5" style={{ color: 'var(--gray-600)' }}>{m.propietario || '—'}</td>
-                    <td className="px-4 py-2.5"><TipoBadge tipo={m.tipo} /></td>
-                    <td className="px-4 py-2.5 tabular-nums text-[12.5px]" style={{ color: 'var(--gray-600)' }}>{formatFecha(m.hora_entrada)}</td>
-                    <td className="px-4 py-2.5 tabular-nums text-[12.5px]" style={{ color: 'var(--gray-600)' }}>
-                      {m.hora_salida
-                        ? formatFecha(m.hora_salida)
-                        : <span className="font-semibold" style={{ color: 'var(--blue-700)' }}>Mensualidad</span>}
-                    </td>
-                    <td className="px-4 py-2.5 capitalize text-[12.5px]" style={{ color: 'var(--gray-600)' }}>{m.metodo_pago ?? '—'}</td>
-                    <td className="px-4 py-2.5 text-right font-bold tabular-nums" style={{ color: 'var(--blue-900)' }}>
-                      {formatCOP(m.monto_cobrado)}
-                    </td>
+          <>
+            {/* Desktop table */}
+            <div className="hidden lg:block overflow-x-auto -mx-5">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ backgroundColor: 'var(--gray-50)' }}>
+                    <Th>Placa</Th><Th>Propietario</Th><Th>Tipo</Th>
+                    <Th>Entrada</Th><Th>Salida</Th><Th>Método</Th><Th right>Monto</Th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {todosMov.map(m => (
+                    <tr key={m.id} style={{ borderTop: '1px solid var(--gray-50)' }}>
+                      <td className="px-4 py-2.5 font-bold font-mono" style={{ color: 'var(--blue-900)' }}>{m.placa}</td>
+                      <td className="px-4 py-2.5" style={{ color: 'var(--gray-600)' }}>{m.propietario || '—'}</td>
+                      <td className="px-4 py-2.5"><TipoBadge tipo={m.tipo} /></td>
+                      <td className="px-4 py-2.5 tabular-nums text-[12.5px]" style={{ color: 'var(--gray-600)' }}>
+                        {formatFecha(m.hora_entrada)}
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums text-[12.5px]" style={{ color: 'var(--gray-600)' }}>
+                        {m.hora_salida
+                          ? formatFecha(m.hora_salida)
+                          : <span className="font-semibold" style={{ color: 'var(--blue-700)' }}>Mens.</span>}
+                      </td>
+                      <td className="px-4 py-2.5 capitalize text-[12.5px]" style={{ color: 'var(--gray-600)' }}>
+                        {m.metodo_pago ?? '—'}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-bold tabular-nums" style={{ color: 'var(--blue-900)' }}>
+                        {formatCOP(m.monto_cobrado)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="lg:hidden divide-y -mx-5 px-5" style={{ borderColor: 'var(--gray-50)' }}>
+              {todosMov.map(m => (
+                <div key={m.id} className="py-2.5 flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span
+                        className="text-[14px] font-bold tracking-wider truncate"
+                        style={{ fontFamily: '"JetBrains Mono", monospace', color: 'var(--blue-900)' }}
+                      >
+                        {m.placa}
+                      </span>
+                      <TipoBadge tipo={m.tipo} />
+                    </div>
+                    <div className="text-[11px] tabular-nums truncate" style={{ color: 'var(--gray-400)' }}>
+                      {m.hora_salida ? formatFecha(m.hora_salida) : formatFecha(m.hora_entrada)}
+                      {m.metodo_pago && <span className="ml-2 capitalize">· {m.metodo_pago}</span>}
+                    </div>
+                  </div>
+                  <div className="text-[14px] font-extrabold tabular-nums shrink-0" style={{ color: 'var(--blue-900)' }}>
+                    {formatCOP(m.monto_cobrado)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </Card>
 
+
       {/* Cerrar caja */}
       {!cierre && (
-        <div className="flex justify-end mt-6">
+        <div className="flex justify-end mt-5 lg:mt-6">
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-5 py-3 font-bold transition-colors text-[14px]"
+            className="flex items-center justify-center gap-2 font-bold transition-colors text-[14px] w-full sm:w-auto"
             style={{
+              padding: '12px 20px',
               backgroundColor: 'var(--danger)',
               color: 'var(--white)',
               borderRadius: 'var(--radius-sm)',
+              border: 'none',
+              minHeight: 48,
             }}
           >
             <Lock size={16} />
@@ -444,13 +478,10 @@ function ModalCerrarCaja({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 pm-overlay pm-animate-fade-in"
+      className="pm-modal-wrap"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div
-        className="bg-white w-full max-w-md pm-animate-slide-up overflow-hidden"
-        style={{ borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)' }}
-      >
+      <div className="pm-modal-shell" onClick={e => e.stopPropagation()}>
         <div className="px-6 py-5" style={{ backgroundColor: 'var(--blue-700)', color: 'var(--white)' }}>
           <h2 className="text-base font-bold leading-none">Cerrar caja del día</h2>
           <p className="text-[12px] mt-1.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
@@ -539,16 +570,17 @@ function ModalCerrarCaja({
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
             <button
               onClick={onClose}
-              className="flex-1 font-semibold transition-colors text-sm"
+              className="font-semibold transition-colors text-sm sm:flex-1"
               style={{
                 padding: '13px 24px',
                 border: '1.5px solid var(--gray-100)',
                 borderRadius: 'var(--radius-sm)',
                 color: 'var(--gray-400)',
                 backgroundColor: 'transparent',
+                minHeight: 48,
               }}
             >
               Cancelar
@@ -556,13 +588,14 @@ function ModalCerrarCaja({
             <button
               onClick={async () => { setLoading(true); await onConfirm(cerradoPor, notas); setLoading(false) }}
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 font-bold transition-all disabled:opacity-50 text-sm"
+              className="flex items-center justify-center gap-2 font-bold transition-all disabled:opacity-50 text-sm sm:flex-1"
               style={{
                 padding: '13px 24px',
                 backgroundColor: 'var(--danger)',
                 color: 'var(--white)',
                 borderRadius: 'var(--radius-sm)',
                 border: 'none',
+                minHeight: 48,
               }}
             >
               <CheckCircle size={16} />
@@ -602,19 +635,17 @@ function KpiCard({
 }) {
   return (
     <div
-      className="bg-white flex items-center gap-3"
+      className="bg-white flex items-center gap-2.5 lg:gap-3 p-3 lg:p-[18px]"
       style={{
-        padding: '18px 20px',
-        borderRadius: 'var(--radius-lg)',
+        borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow-sm)',
         borderLeft: `4px solid ${accent}`,
       }}
     >
       <div
-        className="shrink-0 flex items-center justify-center"
+        className="shrink-0 hidden sm:flex items-center justify-center"
         style={{
-          width: 40,
-          height: 40,
+          width: 40, height: 40,
           backgroundColor: 'var(--gray-50)',
           borderRadius: 'var(--radius-md)',
         }}
@@ -623,13 +654,13 @@ function KpiCard({
       </div>
       <div className="min-w-0">
         <div
-          className="text-[10px] font-semibold uppercase mb-1"
-          style={{ color: 'var(--gray-400)', letterSpacing: '0.06em' }}
+          className="text-[9px] lg:text-[10px] font-semibold uppercase mb-0.5 lg:mb-1 truncate"
+          style={{ color: 'var(--gray-400)', letterSpacing: '0.05em' }}
         >
           {label}
         </div>
         <div
-          className="text-xl font-extrabold leading-none tabular-nums truncate"
+          className="text-base lg:text-xl font-extrabold leading-none tabular-nums truncate"
           style={{ color: valueColor }}
         >
           {value}

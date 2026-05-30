@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw, RotateCcw, Plus, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Topbar from '../components/Topbar'
+import PageHeader from '../components/PageHeader'
 import { supabase } from '../lib/supabase'
 import { formatCOP, addDias, fechaHoyBogota } from '../lib/helpers'
 import { useTarifas } from '../hooks/useTarifas'
@@ -60,8 +61,7 @@ export default function Mensualistas() {
   const renovar = async (moto: Moto) => {
     setRenovando(moto.id)
     const nuevaFecha = addDias(
-      moto.fecha_vencimiento ?? new Date(),
-      30,
+      moto.fecha_vencimiento ?? new Date(), 30,
     ).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
     const monto = tarifasMap.mensualidad
 
@@ -94,13 +94,14 @@ export default function Mensualistas() {
     return 1
   }
 
-  const vencidasCount = mensualistas.filter(m => diasRestantes(m.fecha_vencimiento) <= 0).length
+  const vencidasCount  = mensualistas.filter(m => diasRestantes(m.fecha_vencimiento) <= 0).length
   const porVencerCount = mensualistas.filter(m => {
     const d = diasRestantes(m.fecha_vencimiento)
     return d > 0 && d <= 7
   }).length
 
-  const right = (
+  // Desktop topbar actions
+  const desktopRight = (
     <>
       <button
         onClick={cargar}
@@ -132,49 +133,64 @@ export default function Mensualistas() {
     </>
   )
 
+  // Mobile page header: just refresh icon
+  const mobileRight = (
+    <button
+      onClick={cargar}
+      disabled={loading}
+      aria-label="Recargar"
+      style={{
+        width: 40, height: 40,
+        border: '1.5px solid var(--gray-100)',
+        borderRadius: 'var(--radius-sm)',
+        color: 'var(--blue-700)',
+        backgroundColor: 'var(--white)',
+      }}
+      className="flex items-center justify-center"
+    >
+      <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+    </button>
+  )
+
+  const subtitle = (
+    <>
+      <span className="font-semibold" style={{ color: 'var(--blue-900)' }}>
+        {mensualistas.length} activos
+      </span>
+      {vencidasCount > 0 && (
+        <span className="ml-2 font-medium" style={{ color: 'var(--danger)' }}>
+          · {vencidasCount} vencida{vencidasCount > 1 ? 's' : ''}
+        </span>
+      )}
+      {porVencerCount > 0 && (
+        <span className="ml-2 font-medium" style={{ color: 'var(--warning)' }}>
+          · {porVencerCount} por vencer
+        </span>
+      )}
+    </>
+  )
+
   return (
     <>
-      <Topbar title="Mensualistas" right={right} />
+      <Topbar title="Mensualistas" right={desktopRight} />
 
-      <div className="p-6 max-w-6xl">
-        {/* Resumen */}
-        <p className="text-sm mb-5" style={{ color: 'var(--gray-600)' }}>
-          <span className="font-semibold" style={{ color: 'var(--blue-900)' }}>
-            {mensualistas.length} activos
-          </span>
-          {vencidasCount > 0 && (
-            <span className="ml-2 font-medium" style={{ color: 'var(--danger)' }}>
-              · {vencidasCount} vencida{vencidasCount > 1 ? 's' : ''}
-            </span>
-          )}
-          {porVencerCount > 0 && (
-            <span className="ml-2 font-medium" style={{ color: 'var(--warning)' }}>
-              · {porVencerCount} por vencer
-            </span>
-          )}
+      <div className="p-3 lg:p-6 max-w-6xl pb-24 lg:pb-6">
+        <PageHeader title="Mensualistas" subtitle={subtitle} right={mobileRight} />
+
+        {/* Desktop subtitle */}
+        <p className="hidden lg:block text-sm mb-5" style={{ color: 'var(--gray-600)' }}>
+          {subtitle}
         </p>
 
-        {/* Tabla */}
+        {/* ── Desktop table ─────────────────────────────────────────── */}
         <div
-          className="bg-white"
+          className="hidden lg:block bg-white"
           style={{ borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)' }}
         >
           {loading ? (
-            <div className="p-12 text-center text-sm" style={{ color: 'var(--gray-400)' }}>
-              <RefreshCw size={28} className="animate-spin mx-auto mb-3 opacity-50" />
-              Cargando…
-            </div>
+            <LoadingBox />
           ) : mensualistas.length === 0 ? (
-            <div className="p-12 text-center text-sm" style={{ color: 'var(--gray-400)' }}>
-              <p className="mb-2">No hay mensualistas activos</p>
-              <button
-                onClick={abrirNuevaMensualista}
-                className="font-bold underline"
-                style={{ color: 'var(--blue-700)' }}
-              >
-                Agregar el primero
-              </button>
-            </div>
+            <EmptyBox onAdd={abrirNuevaMensualista} />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -200,10 +216,7 @@ export default function Mensualistas() {
                         </td>
                         <td
                           className="px-4 py-3 font-bold tracking-wider"
-                          style={{
-                            fontFamily: '"JetBrains Mono", monospace',
-                            color: 'var(--blue-900)',
-                          }}
+                          style={{ fontFamily: '"JetBrains Mono", monospace', color: 'var(--blue-900)' }}
                         >
                           {m.placa}
                         </td>
@@ -219,35 +232,14 @@ export default function Mensualistas() {
                             : '—'}
                         </td>
                         <td className="px-4 py-3">
-                          <span
-                            className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold"
-                            style={{
-                              backgroundColor: colors.bg,
-                              color: colors.color,
-                              borderRadius: 999,
-                            }}
-                          >
-                            {dias <= 0 && <AlertTriangle size={10} />}
-                            {dias <= 0 ? 'Vencida' : `${dias} día${dias !== 1 ? 's' : ''}`}
-                          </span>
+                          <StatusPill dias={dias} colors={colors} />
                         </td>
                         <td className="px-4 py-3">
-                          <button
+                          <RenovarBtn
                             onClick={() => renovar(m)}
-                            disabled={renovando === m.id}
-                            className="flex items-center gap-1.5 font-bold transition-all disabled:opacity-50"
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: 'var(--yellow-400)',
-                              color: 'var(--blue-900)',
-                              borderRadius: 'var(--radius-sm)',
-                              fontSize: 12,
-                              border: 'none',
-                            }}
-                          >
-                            <RotateCcw size={12} className={renovando === m.id ? 'animate-spin' : ''} />
-                            {renovando === m.id ? '…' : `Renovar · ${formatCOP(tarifasMap.mensualidad)}`}
-                          </button>
+                            loading={renovando === m.id}
+                            monto={tarifasMap.mensualidad}
+                          />
                         </td>
                       </tr>
                     )
@@ -257,6 +249,92 @@ export default function Mensualistas() {
             </div>
           )}
         </div>
+
+        {/* ── Mobile cards ──────────────────────────────────────────── */}
+        <div className="lg:hidden">
+          {loading ? (
+            <div
+              className="bg-white p-10 text-center text-sm"
+              style={{ color: 'var(--gray-400)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)' }}
+            >
+              <RefreshCw size={24} className="animate-spin mx-auto mb-3 opacity-50" />
+              Cargando…
+            </div>
+          ) : mensualistas.length === 0 ? (
+            <div
+              className="bg-white p-10 text-center text-sm"
+              style={{ color: 'var(--gray-400)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)' }}
+            >
+              No hay mensualistas activos
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {mensualistas.map(m => {
+                const dias   = diasRestantes(m.fecha_vencimiento)
+                const colors = colorDias(dias)
+                return (
+                  <div
+                    key={m.id}
+                    className="bg-white p-4"
+                    style={{ borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)' }}
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2.5">
+                      <div className="min-w-0 flex-1">
+                        <div
+                          className="text-lg font-bold tracking-wider truncate"
+                          style={{ fontFamily: '"JetBrains Mono", monospace', color: 'var(--blue-900)' }}
+                        >
+                          {m.placa}
+                        </div>
+                        {m.propietario && (
+                          <div className="text-[13px] truncate" style={{ color: 'var(--gray-600)' }}>
+                            {m.propietario}
+                          </div>
+                        )}
+                      </div>
+                      <StatusPill dias={dias} colors={colors} />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[12px] mb-3">
+                      <Info label="Espacio" value={m.hora_salida === null && m.espacio ? `#${m.espacio}` : '—'} />
+                      <Info
+                        label="Vence"
+                        value={m.fecha_vencimiento
+                          ? new Date(m.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-CO')
+                          : '—'}
+                      />
+                      {m.telefono && <Info label="Teléfono" value={m.telefono} />}
+                    </div>
+
+                    <RenovarBtn
+                      fullWidth
+                      onClick={() => renovar(m)}
+                      loading={renovando === m.id}
+                      monto={tarifasMap.mensualidad}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ── FAB (mobile only) ──────────────────────────────────────── */}
+        <button
+          onClick={abrirNuevaMensualista}
+          aria-label="Nuevo mensualista"
+          className="lg:hidden fixed bottom-5 right-5 z-20 flex items-center justify-center"
+          style={{
+            width: 56, height: 56,
+            borderRadius: '50%',
+            backgroundColor: 'var(--yellow-400)',
+            color: 'var(--blue-900)',
+            boxShadow: 'var(--shadow-lg)',
+            border: 'none',
+          }}
+        >
+          <Plus size={26} strokeWidth={2.5} />
+        </button>
 
         {showModal && (
           <EntradaModal
@@ -276,6 +354,8 @@ export default function Mensualistas() {
   )
 }
 
+// ─── Sub-components ────────────────────────────────────────────────────────────
+
 function Th({ children }: { children: React.ReactNode }) {
   return (
     <th
@@ -284,5 +364,75 @@ function Th({ children }: { children: React.ReactNode }) {
     >
       {children}
     </th>
+  )
+}
+
+function StatusPill({ dias, colors }: { dias: number; colors: BadgePalette }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold whitespace-nowrap"
+      style={{ backgroundColor: colors.bg, color: colors.color, borderRadius: 999 }}
+    >
+      {dias <= 0 && <AlertTriangle size={10} />}
+      {dias <= 0 ? 'Vencida' : `${dias} día${dias !== 1 ? 's' : ''}`}
+    </span>
+  )
+}
+
+function RenovarBtn({
+  onClick, loading, monto, fullWidth,
+}: { onClick: () => void; loading: boolean; monto: number; fullWidth?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      className={`flex items-center justify-center gap-1.5 font-bold transition-all disabled:opacity-50 ${fullWidth ? 'w-full' : ''}`}
+      style={{
+        padding: fullWidth ? '10px 14px' : '6px 12px',
+        backgroundColor: 'var(--yellow-400)',
+        color: 'var(--blue-900)',
+        borderRadius: 'var(--radius-sm)',
+        fontSize: 13,
+        border: 'none',
+        minHeight: fullWidth ? 44 : 32,
+      }}
+    >
+      <RotateCcw size={13} className={loading ? 'animate-spin' : ''} />
+      {loading ? '…' : `Renovar · ${formatCOP(monto)}`}
+    </button>
+  )
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div
+        className="text-[10px] font-semibold uppercase mb-0.5"
+        style={{ color: 'var(--gray-400)', letterSpacing: '0.05em' }}
+      >
+        {label}
+      </div>
+      <div className="font-medium truncate" style={{ color: 'var(--blue-900)' }}>{value}</div>
+    </div>
+  )
+}
+
+function LoadingBox() {
+  return (
+    <div className="p-12 text-center text-sm" style={{ color: 'var(--gray-400)' }}>
+      <RefreshCw size={28} className="animate-spin mx-auto mb-3 opacity-50" />
+      Cargando…
+    </div>
+  )
+}
+
+function EmptyBox({ onAdd }: { onAdd: () => void }) {
+  return (
+    <div className="p-12 text-center text-sm" style={{ color: 'var(--gray-400)' }}>
+      <p className="mb-2">No hay mensualistas activos</p>
+      <button onClick={onAdd} className="font-bold underline" style={{ color: 'var(--blue-700)' }}>
+        Agregar el primero
+      </button>
+    </div>
   )
 }

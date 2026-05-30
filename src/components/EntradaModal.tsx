@@ -127,17 +127,7 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
 
   return (
     <Overlay onClose={onClose}>
-      <div
-        className="bg-white w-full max-w-md pm-animate-slide-up overflow-hidden"
-        style={{
-          maxWidth: 480,
-          width: '90vw',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-lg)',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-        }}
-      >
+      <div className="pm-modal-shell" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div
           className="flex items-center justify-between px-6 py-5"
@@ -321,11 +311,11 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
           </Field>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 font-semibold transition-colors"
+              className="font-semibold transition-colors sm:flex-1"
               style={{
                 padding: '13px 24px',
                 border: '1.5px solid var(--gray-100)',
@@ -333,6 +323,7 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
                 color: 'var(--gray-400)',
                 backgroundColor: 'transparent',
                 fontSize: 14,
+                minHeight: 48,
               }}
             >
               Cancelar
@@ -340,7 +331,7 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
             <button
               type="submit"
               disabled={loading || !placa.trim() || (tipo === 'mensualidad' && checkingMens)}
-              className="flex-1 font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed sm:flex-1"
               style={{
                 padding: '13px 24px',
                 borderRadius: 'var(--radius-sm)',
@@ -348,6 +339,7 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
                 color: tipo === 'mensualidad' && mensActiva ? 'var(--white)' : 'var(--blue-900)',
                 fontSize: 15,
                 border: 'none',
+                minHeight: 48,
               }}
             >
               {botonLabel}
@@ -420,7 +412,7 @@ function inputBlur(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) 
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 pm-overlay pm-animate-fade-in"
+      className="pm-modal-wrap"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       {children}

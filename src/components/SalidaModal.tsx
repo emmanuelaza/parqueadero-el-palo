@@ -83,15 +83,7 @@ export default function SalidaModal({ moto, tarifasMap, onClose, onConfirm }: Pr
 
   return (
     <Overlay onClose={onClose}>
-      <div
-        className="bg-white w-full pm-animate-slide-up overflow-hidden"
-        style={{
-          maxWidth: 480,
-          width: '90vw',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-lg)',
-        }}
-      >
+      <div className="pm-modal-shell" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div
           className="flex items-center justify-between px-6 py-5"
@@ -278,12 +270,12 @@ export default function SalidaModal({ moto, tarifasMap, onClose, onConfirm }: Pr
             />
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-2">
+          {/* Actions: stacked on mobile, row on desktop */}
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sticky bottom-0 bg-white pt-3 -mx-6 px-6 -mb-6 pb-6 sm:static sm:bg-transparent sm:pt-0 sm:mx-0 sm:px-0 sm:mb-0 sm:pb-0" style={{ borderTop: '1px solid var(--gray-50)' }}>
             <button
               type="button"
               onClick={onClose}
-              className="font-semibold transition-colors text-[13px]"
+              className="hidden sm:block font-semibold transition-colors text-[13px]"
               style={{
                 padding: '13px 18px',
                 border: '1.5px solid var(--gray-100)',
@@ -299,11 +291,12 @@ export default function SalidaModal({ moto, tarifasMap, onClose, onConfirm }: Pr
               disabled={loading}
               className="flex-1 flex items-center justify-center gap-1.5 font-semibold transition-all disabled:opacity-50 text-[13px]"
               style={{
-                padding: '13px 16px',
+                padding: '14px 16px',
                 border: '1.5px solid var(--blue-700)',
                 color: 'var(--blue-700)',
                 backgroundColor: 'transparent',
                 borderRadius: 'var(--radius-sm)',
+                minHeight: 48,
               }}
             >
               <CheckCircle size={15} />
@@ -314,11 +307,12 @@ export default function SalidaModal({ moto, tarifasMap, onClose, onConfirm }: Pr
               disabled={loading}
               className="flex-1 flex items-center justify-center gap-1.5 font-bold transition-all disabled:opacity-50 text-[14px]"
               style={{
-                padding: '13px 16px',
+                padding: '14px 16px',
                 backgroundColor: 'var(--yellow-400)',
                 color: 'var(--blue-900)',
                 borderRadius: 'var(--radius-sm)',
                 border: 'none',
+                minHeight: 48,
               }}
             >
               <Printer size={15} />
@@ -383,7 +377,7 @@ function MethodButton({
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 pm-overlay pm-animate-fade-in"
+      className="pm-modal-wrap"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       {children}

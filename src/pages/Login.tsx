@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -11,12 +11,6 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [showPwd,  setShowPwd]  = useState(false)
   const [loading,  setLoading]  = useState(false)
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate('/', { replace: true })
-    })
-  }, [navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,17 +30,20 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen pm-parking-pattern flex items-center justify-center p-4">
+    <div
+      className="min-h-screen flex items-center justify-center p-4 sm:pm-parking-pattern"
+      style={{ backgroundColor: 'var(--blue-900)' }}
+    >
       <div className="w-full max-w-sm pm-animate-slide-up">
         {/* Card */}
         <div
-          className="bg-white p-10"
+          className="bg-white p-6 sm:p-10"
           style={{ borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)' }}
         >
           {/* Logo area */}
-          <div className="text-center mb-7">
-            <div className="flex justify-center mb-4">
-              <LogoIcon size={64} />
+          <div className="text-center mb-6 sm:mb-7">
+            <div className="flex justify-center mb-3 sm:mb-4">
+              <LogoIcon size={56} />
             </div>
             <h1
               className="text-[26px] font-extrabold leading-none tracking-tight"
@@ -146,7 +143,8 @@ export default function Login() {
               disabled={loading || !email || !password}
               className="w-full font-bold mt-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
-                height: 48,
+                minHeight: 48,
+                padding: '12px 16px',
                 backgroundColor: 'var(--yellow-400)',
                 color: 'var(--blue-900)',
                 borderRadius: 'var(--radius-sm)',
