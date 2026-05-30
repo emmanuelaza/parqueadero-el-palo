@@ -27,7 +27,8 @@ export function diffHoras(desde: string | Date, hasta: string | Date = new Date(
   return (fin - inicio) / (1000 * 60 * 60)
 }
 
-/** Calcula el monto a cobrar según tipo y tarifa */
+/** Calcula el monto a cobrar según tipo y tarifa.
+ *  Regla HORA: ≤ 1h cobra tarifa hora; > 1h (aunque sea 1h 1min) cobra día completo. */
 export function calcularMonto(
   horaEntrada: string | Date,
   horaSalida: string | Date = new Date(),
@@ -37,15 +38,25 @@ export function calcularMonto(
   switch (tipo) {
     case 'hora': {
       const horas = diffHoras(horaEntrada, horaSalida)
-      // Fracción de hora se cobra como hora completa, mínimo 1 hora
-      const horasFacturables = Math.max(1, Math.ceil(horas))
-      return horasFacturables * tarifas.hora
+      return horas <= 1 ? tarifas.hora : tarifas.dia
     }
     case 'dia':
       return tarifas.dia
     case 'mensualidad':
       return tarifas.mensualidad
   }
+}
+
+/** Devuelve qué tarifa se aplicó dada la duración y el tipo original */
+export function tarifaAplicada(
+  horaEntrada: string | Date,
+  horaSalida: string | Date = new Date(),
+  tipo: TarifaTipo,
+): 'hora' | 'dia' | 'mensualidad' {
+  if (tipo === 'mensualidad') return 'mensualidad'
+  if (tipo === 'dia')         return 'dia'
+  // tipo === 'hora'
+  return diffHoras(horaEntrada, horaSalida) <= 1 ? 'hora' : 'dia'
 }
 
 /** Formatea duración en horas/minutos legible */

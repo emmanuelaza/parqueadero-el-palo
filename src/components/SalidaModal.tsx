@@ -8,6 +8,8 @@ import {
   TIPO_LABELS,
   formatNumeroTiquete,
   generarTiqueteSalida,
+  tarifaAplicada,
+  diffHoras,
 } from '../lib/helpers'
 import { useConfig } from '../context/ConfiguracionContext'
 import type { Moto, TarifasMap } from '../types'
@@ -51,6 +53,15 @@ export default function SalidaModal({ moto, tarifasMap, onClose, onConfirm }: Pr
   const esMensualidad = moto.tipo === 'mensualidad'
   const monto         = esMensualidad ? 0 : calcularMonto(moto.hora_entrada, ahora, moto.tipo, tarifasMap)
   const duracion      = formatDuracion(moto.hora_entrada, ahora)
+  const tarifa        = tarifaAplicada(moto.hora_entrada, ahora, moto.tipo)
+  const sePasoHora    = moto.tipo === 'hora' && diffHoras(moto.hora_entrada, ahora) > 1
+
+  const explicacionCobro = (() => {
+    if (esMensualidad) return null
+    if (moto.tipo === 'dia') return `Tiempo: ${duracion} — Tarifa día`
+    if (tarifa === 'hora')   return `Tiempo: ${duracion} — Tarifa hora`
+    return `Tiempo: ${duracion} — Se pasó de 1 hora, cobro día completo`
+  })()
 
   const abrirTiquete = (horaSalidaFinal: Date) => {
     const html = generarTiqueteSalida({
@@ -204,9 +215,14 @@ export default function SalidaModal({ moto, tarifasMap, onClose, onConfirm }: Pr
               >
                 {formatCOP(monto)}
               </div>
-              <div className="text-[13px] mt-2" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                {duracion}
-              </div>
+              {explicacionCobro && (
+                <div
+                  className="text-[12.5px] mt-2 font-medium"
+                  style={{ color: sePasoHora ? '#FCA5A5' : 'rgba(255,255,255,0.7)' }}
+                >
+                  {explicacionCobro}
+                </div>
+              )}
             </div>
           )}
 

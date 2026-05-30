@@ -139,6 +139,7 @@ function OcupadoCard({
 
   const horas        = diffHoras(moto.hora_entrada)
   const esAbandonado = horas > alertaHoras
+  const horaPasada   = moto.tipo === 'hora' && horas > 1
 
   const vencida = moto.tipo === 'mensualidad' && moto.fecha_vencimiento
     ? moto.fecha_vencimiento < new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
@@ -171,16 +172,18 @@ function OcupadoCard({
           #{numero}
         </span>
         <span
-          className="px-1 lg:px-1.5 py-0.5 text-[9px] lg:text-[10px] font-bold"
+          className={`px-1 lg:px-1.5 py-0.5 text-[9px] lg:text-[10px] font-bold ${horaPasada ? 'pm-animate-pulse-border' : ''}`}
           style={{
             ...(vencida
               ? { backgroundColor: 'var(--danger)', color: 'var(--white)' }
+              : horaPasada
+              ? { backgroundColor: 'var(--warning)', color: 'var(--white)' }
               : TIPO_BADGE[moto.tipo]),
             borderRadius: 4,
             letterSpacing: '0.04em',
           }}
         >
-          {vencida ? 'VENCIÓ' : TIPO_LABELS[moto.tipo]}
+          {vencida ? 'VENCIÓ' : horaPasada ? 'DÍA' : TIPO_LABELS[moto.tipo]}
         </span>
       </div>
 
