@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { Search, Download, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import Topbar from './Topbar'
 import { supabase } from '../lib/supabase'
 import {
   formatCOP,
@@ -15,18 +16,18 @@ import type { Moto, TarifaTipo } from '../types'
 const PAGE_SIZE = 30
 
 const TIPOS_FILTRO: Array<{ value: string; label: string }> = [
-  { value: '',            label: 'Todos'       },
-  { value: 'hora',        label: 'Por hora'    },
-  { value: 'dia',         label: 'Por día'     },
-  { value: 'mensualidad', label: 'Mensualidad' },
+  { value: '',            label: 'Todos los tipos' },
+  { value: 'hora',        label: 'Por hora'        },
+  { value: 'dia',         label: 'Por día'         },
+  { value: 'mensualidad', label: 'Mensualidad'     },
 ]
 
 export default function Historial() {
-  const [motos,        setMotos]       = useState<Moto[]>([])
-  const [loading,      setLoading]     = useState(false)
-  const [total,        setTotal]       = useState(0)
-  const [page,         setPage]        = useState(0)
-  const [buscado,      setBuscado]     = useState(false)
+  const [motos,   setMotos]   = useState<Moto[]>([])
+  const [loading, setLoading] = useState(false)
+  const [total,   setTotal]   = useState(0)
+  const [page,    setPage]    = useState(0)
+  const [buscado, setBuscado] = useState(false)
 
   const [placa,      setPlaca]      = useState('')
   const [tipo,       setTipo]       = useState('')
@@ -58,12 +59,7 @@ export default function Historial() {
   }, [placa, tipo, fechaDesde, fechaHasta])
 
   const exportarCSV = async () => {
-    // Fetch all matching rows (no pagination)
-    let query = supabase
-      .from('motos')
-      .select('*')
-      .order('created_at', { ascending: false })
-
+    let query = supabase.from('motos').select('*').order('created_at', { ascending: false })
     if (placa.trim())    query = query.ilike('placa', `%${normalizarPlaca(placa)}%`)
     if (tipo)            query = query.eq('tipo', tipo as TarifaTipo)
     if (fechaDesde)      query = query.gte('hora_entrada', `${fechaDesde}T00:00:00`)
@@ -72,7 +68,7 @@ export default function Historial() {
     const { data } = await query
     if (!data) return
 
-    const typedData = (data as import('../types').Moto[])
+    const typedData = (data as Moto[])
     const headers = ['Tiquete','Fecha','Placa','Propietario','Teléfono','Espacio','Tipo','Entrada','Salida','Duración (h)','Monto','Método','Atendido por','Pagado']
     const rows = typedData.map(m => {
       const durH = m.hora_salida
@@ -101,194 +97,283 @@ export default function Historial() {
 
   const totalPaginas = Math.ceil(total / PAGE_SIZE)
 
+  const right = buscado && motos.length > 0 ? (
+    <button
+      onClick={exportarCSV}
+      className="flex items-center gap-2 font-semibold transition-colors text-[13px]"
+      style={{
+        padding: '8px 16px',
+        backgroundColor: 'var(--blue-700)',
+        color: 'var(--white)',
+        borderRadius: 'var(--radius-sm)',
+        border: 'none',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--blue-900)')}
+      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--blue-700)')}
+    >
+      <Download size={14} />
+      Exportar CSV
+    </button>
+  ) : undefined
+
   return (
-    <div className="p-6 max-w-6xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Historial</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Todos los registros de entrada/salida</p>
-        </div>
-        {buscado && motos.length > 0 && (
-          <button
-            onClick={exportarCSV}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors"
-          >
-            <Download size={16} />
-            Exportar CSV
-          </button>
-        )}
-      </div>
+    <>
+      <Topbar title="Historial" right={right} />
 
-      {/* Filters */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter size={16} className="text-slate-500" />
-          <span className="text-sm font-semibold text-slate-700">Filtros</span>
+      <div className="p-6 max-w-6xl">
+        {/* Filters */}
+        <div
+          className="bg-white p-5 mb-6"
+          style={{ borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)' }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Filter size={15} style={{ color: 'var(--blue-700)' }} />
+            <span className="text-sm font-semibold" style={{ color: 'var(--blue-900)' }}>Filtros</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <FilterInput
+              type="text"
+              value={placa}
+              placeholder="Buscar placa…"
+              onChange={setPlaca}
+              onKeyEnter={() => buscar(0)}
+            />
+            <select
+              value={tipo}
+              onChange={e => setTipo(e.target.value)}
+              style={selectStyle}
+            >
+              {TIPOS_FILTRO.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+            <FilterInput type="date" value={fechaDesde} onChange={setFechaDesde} placeholder="" />
+            <FilterInput type="date" value={fechaHasta} onChange={setFechaHasta} placeholder="" />
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => buscar(0)}
+              disabled={loading}
+              className="flex items-center gap-2 font-bold transition-all disabled:opacity-50 text-sm"
+              style={{
+                padding: '10px 20px',
+                backgroundColor: 'var(--yellow-400)',
+                color: 'var(--blue-900)',
+                borderRadius: 'var(--radius-sm)',
+                border: 'none',
+              }}
+            >
+              <Search size={15} />
+              {loading ? 'Buscando…' : 'Buscar'}
+            </button>
+            <button
+              onClick={() => { setPlaca(''); setTipo(''); setFechaDesde(''); setFechaHasta(''); setMotos([]); setBuscado(false) }}
+              className="font-semibold transition-colors text-sm"
+              style={{
+                padding: '10px 16px',
+                border: '1.5px solid var(--gray-100)',
+                color: 'var(--gray-400)',
+                backgroundColor: 'transparent',
+                borderRadius: 'var(--radius-sm)',
+              }}
+            >
+              Limpiar
+            </button>
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <input
-            type="text"
-            placeholder="Buscar placa…"
-            value={placa}
-            onChange={e => setPlaca(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && buscar(0)}
-            className="px-3 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none text-sm"
-          />
-          <select
-            value={tipo}
-            onChange={e => setTipo(e.target.value)}
-            className="px-3 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none text-sm bg-white"
-          >
-            {TIPOS_FILTRO.map(t => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
-          <input
-            type="date"
-            value={fechaDesde}
-            onChange={e => setFechaDesde(e.target.value)}
-            className="px-3 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none text-sm"
-          />
-          <input
-            type="date"
-            value={fechaHasta}
-            onChange={e => setFechaHasta(e.target.value)}
-            className="px-3 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none text-sm"
-          />
-        </div>
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={() => buscar(0)}
-            disabled={loading}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 disabled:opacity-50 transition-colors"
-          >
-            <Search size={16} />
-            {loading ? 'Buscando…' : 'Buscar'}
-          </button>
-          <button
-            onClick={() => { setPlaca(''); setTipo(''); setFechaDesde(''); setFechaHasta(''); setMotos([]); setBuscado(false) }}
-            className="px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors"
-          >
-            Limpiar
-          </button>
-        </div>
-      </div>
 
-      {/* Results */}
-      {buscado && (
-        <div className="bg-white rounded-2xl border border-slate-200">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <span className="text-sm text-slate-500">
-              {loading ? 'Cargando…' : `${total.toLocaleString('es-CO')} resultado${total !== 1 ? 's' : ''}`}
-            </span>
-            {totalPaginas > 1 && (
-              <div className="flex items-center gap-2 text-sm">
-                <button
-                  onClick={() => buscar(page - 1)}
-                  disabled={page === 0 || loading}
-                  className="p-1 rounded hover:bg-slate-100 disabled:opacity-40"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <span className="text-slate-600">
-                  Página {page + 1} / {totalPaginas}
-                </span>
-                <button
-                  onClick={() => buscar(page + 1)}
-                  disabled={page >= totalPaginas - 1 || loading}
-                  className="p-1 rounded hover:bg-slate-100 disabled:opacity-40"
-                >
-                  <ChevronRight size={18} />
-                </button>
+        {/* Results */}
+        {buscado && (
+          <div
+            className="bg-white"
+            style={{ borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)' }}
+          >
+            <div
+              className="p-4 flex items-center justify-between"
+              style={{ borderBottom: '1px solid var(--gray-50)' }}
+            >
+              <span className="text-sm" style={{ color: 'var(--gray-600)' }}>
+                {loading ? 'Cargando…' : `${total.toLocaleString('es-CO')} resultado${total !== 1 ? 's' : ''}`}
+              </span>
+              {totalPaginas > 1 && (
+                <div className="flex items-center gap-2 text-sm">
+                  <button
+                    onClick={() => buscar(page - 1)}
+                    disabled={page === 0 || loading}
+                    className="p-1 disabled:opacity-40"
+                    style={{ color: 'var(--blue-700)' }}
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span style={{ color: 'var(--gray-600)' }}>
+                    Página {page + 1} / {totalPaginas}
+                  </span>
+                  <button
+                    onClick={() => buscar(page + 1)}
+                    disabled={page >= totalPaginas - 1 || loading}
+                    className="p-1 disabled:opacity-40"
+                    style={{ color: 'var(--blue-700)' }}
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {loading ? (
+              <div className="p-8 text-center text-sm" style={{ color: 'var(--gray-400)' }}>Cargando…</div>
+            ) : motos.length === 0 ? (
+              <div className="p-8 text-center text-sm" style={{ color: 'var(--gray-400)' }}>
+                Sin resultados para los filtros seleccionados
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr style={{ backgroundColor: 'var(--gray-50)' }}>
+                      <Th>Tiquete</Th>
+                      <Th>Placa</Th>
+                      <Th>Propietario</Th>
+                      <Th>Tipo</Th>
+                      <Th>Esp.</Th>
+                      <Th>Entrada</Th>
+                      <Th>Salida</Th>
+                      <Th>Duración</Th>
+                      <Th right>Monto</Th>
+                      <Th>Método</Th>
+                      <Th>Atendido</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {motos.map(m => (
+                      <tr key={m.id} style={{ borderTop: '1px solid var(--gray-50)' }}>
+                        <td className="px-4 py-3 font-mono text-[11px]" style={{ color: 'var(--gray-400)' }}>
+                          {m.numero_tiquete ? `#${formatNumeroTiquete(m.numero_tiquete)}` : '—'}
+                        </td>
+                        <td
+                          className="px-4 py-3 font-bold tracking-wider"
+                          style={{ fontFamily: '"JetBrains Mono", monospace', color: 'var(--blue-900)' }}
+                        >
+                          {m.placa}
+                        </td>
+                        <td className="px-4 py-3 max-w-[120px] truncate" style={{ color: 'var(--gray-600)' }}>
+                          {m.propietario || '—'}
+                        </td>
+                        <td className="px-4 py-3"><TipoBadge tipo={m.tipo} /></td>
+                        <td className="px-4 py-3 text-center" style={{ color: 'var(--gray-600)' }}>{m.espacio ?? '—'}</td>
+                        <td className="px-4 py-3 tabular-nums text-[12.5px]" style={{ color: 'var(--gray-600)' }}>
+                          {formatFecha(m.hora_entrada)}
+                        </td>
+                        <td className="px-4 py-3 tabular-nums text-[12.5px]" style={{ color: 'var(--gray-600)' }}>
+                          {m.hora_salida ? formatFecha(m.hora_salida) : (
+                            <span className="font-semibold" style={{ color: 'var(--success)' }}>En parqueadero</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-[12.5px]" style={{ color: 'var(--gray-600)' }}>
+                          {m.hora_salida ? formatDuracion(m.hora_entrada, m.hora_salida) : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold tabular-nums" style={{ color: 'var(--blue-900)' }}>
+                          {m.monto_cobrado != null ? formatCOP(m.monto_cobrado) : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-[12px] capitalize" style={{ color: 'var(--gray-600)' }}>
+                          {m.metodo_pago ?? '—'}
+                        </td>
+                        <td className="px-4 py-3 text-[12px] max-w-[80px] truncate" style={{ color: 'var(--gray-600)' }}>
+                          {m.atendido_por ?? '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
+        )}
 
-          {loading ? (
-            <div className="p-8 text-center text-slate-400">Cargando…</div>
-          ) : motos.length === 0 ? (
-            <div className="p-8 text-center text-slate-400">Sin resultados para los filtros seleccionados</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50 text-left">
-                    <Th>Tiquete</Th>
-                    <Th>Placa</Th>
-                    <Th>Propietario</Th>
-                    <Th>Tipo</Th>
-                    <Th>Esp.</Th>
-                    <Th>Entrada</Th>
-                    <Th>Salida</Th>
-                    <Th>Duración</Th>
-                    <Th right>Monto</Th>
-                    <Th>Método</Th>
-                    <Th>Atendido</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {motos.map(m => (
-                    <tr key={m.id} className="border-t border-slate-100 hover:bg-slate-50">
-                      <td className="px-4 py-3 text-slate-500 font-mono text-xs">
-                        {m.numero_tiquete ? `#${formatNumeroTiquete(m.numero_tiquete)}` : '—'}
-                      </td>
-                      <td className="px-4 py-3 font-bold text-slate-900">{m.placa}</td>
-                      <td className="px-4 py-3 text-slate-600 max-w-[120px] truncate">{m.propietario || '—'}</td>
-                      <td className="px-4 py-3"><TipoBadge tipo={m.tipo} /></td>
-                      <td className="px-4 py-3 text-slate-600 text-center">{m.espacio ?? '—'}</td>
-                      <td className="px-4 py-3 text-slate-600 tabular-nums whitespace-nowrap">{formatFecha(m.hora_entrada)}</td>
-                      <td className="px-4 py-3 text-slate-600 tabular-nums whitespace-nowrap">
-                        {m.hora_salida ? formatFecha(m.hora_salida) : (
-                          <span className="text-green-600 font-semibold">En parqueadero</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 font-mono">
-                        {m.hora_salida ? formatDuracion(m.hora_entrada, m.hora_salida) : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold text-slate-900">
-                        {m.monto_cobrado != null ? formatCOP(m.monto_cobrado) : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 text-xs capitalize">
-                        {m.metodo_pago ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 text-xs max-w-[80px] truncate">
-                        {m.atendido_por ?? '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+        {!buscado && (
+          <div className="text-center py-16" style={{ color: 'var(--gray-400)' }}>
+            <Search size={36} className="mx-auto mb-3 opacity-40" />
+            <p className="text-sm">Usa los filtros arriba y presiona <strong>Buscar</strong> para ver registros</p>
+          </div>
+        )}
+      </div>
+    </>
+  )
+}
 
-      {!buscado && (
-        <div className="text-center py-16 text-slate-400">
-          <Search size={40} className="mx-auto mb-3 opacity-30" />
-          <p>Usa los filtros arriba y presiona <strong>Buscar</strong> para ver registros</p>
-        </div>
-      )}
-    </div>
+const selectStyle: React.CSSProperties = {
+  border: '1.5px solid var(--gray-100)',
+  borderRadius: 'var(--radius-sm)',
+  padding: '10px 14px',
+  fontSize: 14,
+  backgroundColor: 'var(--white)',
+  outline: 'none',
+  color: 'var(--blue-900)',
+}
+
+function FilterInput({
+  type, value, placeholder, onChange, onKeyEnter,
+}: {
+  type: 'text' | 'date'
+  value: string
+  placeholder: string
+  onChange: (v: string) => void
+  onKeyEnter?: () => void
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      onChange={e => onChange(e.target.value)}
+      onKeyDown={e => { if (e.key === 'Enter' && onKeyEnter) onKeyEnter() }}
+      style={{
+        border: '1.5px solid var(--gray-100)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '10px 14px',
+        fontSize: 14,
+        outline: 'none',
+        color: 'var(--blue-900)',
+      }}
+      onFocus={e => {
+        e.currentTarget.style.borderColor = 'var(--blue-700)'
+        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(27,47,190,0.1)'
+      }}
+      onBlur={e => {
+        e.currentTarget.style.borderColor = 'var(--gray-100)'
+        e.currentTarget.style.boxShadow = 'none'
+      }}
+    />
   )
 }
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   return (
-    <th className={`px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide ${right ? 'text-right' : ''}`}>
+    <th
+      className={`px-4 py-2.5 text-[11px] font-semibold uppercase ${right ? 'text-right' : 'text-left'}`}
+      style={{ color: 'var(--blue-900)', letterSpacing: '0.04em' }}
+    >
       {children}
     </th>
   )
 }
 
 function TipoBadge({ tipo }: { tipo: TarifaTipo }) {
-  const colors: Record<TarifaTipo, string> = {
-    hora:        'bg-blue-100 text-blue-700',
-    dia:         'bg-green-100 text-green-700',
-    mensualidad: 'bg-purple-100 text-purple-700',
+  const palette: Record<TarifaTipo, { bg: string; color: string }> = {
+    hora:        { bg: '#DBEAFE', color: '#1B2FBE' },
+    dia:         { bg: '#DCFCE7', color: '#15803D' },
+    mensualidad: { bg: '#FEF3C7', color: '#854D0E' },
   }
   return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${colors[tipo]}`}>
+    <span
+      className="inline-block px-2 py-0.5 text-[10.5px] font-bold uppercase"
+      style={{
+        backgroundColor: palette[tipo].bg,
+        color: palette[tipo].color,
+        borderRadius: 999,
+        letterSpacing: '0.04em',
+      }}
+    >
       {TIPO_LABELS[tipo]}
     </span>
   )

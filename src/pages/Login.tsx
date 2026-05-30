@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bike, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
-import { PARKING_NAME, PARKING_CIUDAD } from '../lib/helpers'
 
 export default function Login() {
   const navigate  = useNavigate()
@@ -36,40 +35,71 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Bike size={32} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-white">{PARKING_NAME}</h1>
-          <p className="text-slate-400 text-sm mt-1">{PARKING_CIUDAD}</p>
-        </div>
-
+    <div className="min-h-screen pm-parking-pattern flex items-center justify-center p-4">
+      <div className="w-full max-w-sm pm-animate-slide-up">
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-7">
-          <h2 className="text-xl font-bold text-slate-900 mb-1">Iniciar sesión</h2>
-          <p className="text-sm text-slate-500 mb-6">Acceso al sistema de gestión</p>
+        <div
+          className="bg-white p-10"
+          style={{ borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)' }}
+        >
+          {/* Logo area */}
+          <div className="text-center mb-7">
+            <div className="pm-logo-icon w-14 h-14 mx-auto text-2xl mb-4">P</div>
+            <h1
+              className="text-[26px] font-extrabold leading-none tracking-tight"
+              style={{ color: 'var(--blue-900)' }}
+            >
+              PUNTO MOTO<span style={{ color: 'var(--yellow-400)' }}>.</span>
+            </h1>
+            <p
+              className="text-[12px] font-medium uppercase mt-2"
+              style={{ color: 'var(--gray-400)', letterSpacing: '0.08em' }}
+            >
+              El Palo · Parqueadero
+            </p>
+          </div>
+
+          <h2 className="text-base font-bold mb-1" style={{ color: 'var(--blue-900)' }}>
+            Iniciar sesión
+          </h2>
+          <p className="text-sm mb-6" style={{ color: 'var(--gray-600)' }}>
+            Acceso al sistema de gestión
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">
+              <label className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--blue-900)' }}>
                 Correo electrónico
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="admin@parqueadero.com"
+                placeholder="admin@puntomoto.com"
                 required
                 autoFocus
-                className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none transition-colors"
+                className="pm-input w-full"
+                style={{
+                  border: '1.5px solid var(--gray-100)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '10px 14px',
+                  fontSize: 15,
+                  outline: 'none',
+                  transition: 'var(--transition)',
+                }}
+                onFocus={e => {
+                  e.currentTarget.style.borderColor = 'var(--blue-700)'
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(27,47,190,0.1)'
+                }}
+                onBlur={e => {
+                  e.currentTarget.style.borderColor = 'var(--gray-100)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">
+              <label className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--blue-900)' }}>
                 Contraseña
               </label>
               <div className="relative">
@@ -79,14 +109,31 @@ export default function Login() {
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full px-4 py-3 pr-12 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none transition-colors"
+                  className="w-full"
+                  style={{
+                    border: '1.5px solid var(--gray-100)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '10px 44px 10px 14px',
+                    fontSize: 15,
+                    outline: 'none',
+                    transition: 'var(--transition)',
+                  }}
+                  onFocus={e => {
+                    e.currentTarget.style.borderColor = 'var(--blue-700)'
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(27,47,190,0.1)'
+                  }}
+                  onBlur={e => {
+                    e.currentTarget.style.borderColor = 'var(--gray-100)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPwd(!showPwd)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: 'var(--gray-400)' }}
                 >
-                  {showPwd ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
@@ -94,14 +141,33 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading || !email || !password}
-              className="w-full py-3 rounded-xl bg-orange-500 text-white font-bold text-base hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
+              className="w-full font-bold mt-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                height: 48,
+                backgroundColor: 'var(--yellow-400)',
+                color: 'var(--blue-900)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 15,
+                border: 'none',
+              }}
+              onMouseEnter={e => {
+                if (e.currentTarget.disabled) return
+                e.currentTarget.style.backgroundColor = 'var(--yellow-300)'
+                e.currentTarget.style.transform = 'translateY(-1px)'
+                e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'var(--yellow-400)'
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
             >
               {loading ? 'Ingresando…' : 'Ingresar'}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-xs text-slate-500 mt-6">
+        <p className="text-center text-xs mt-6" style={{ color: 'rgba(255,255,255,0.5)' }}>
           Sistema de gestión — uso interno
         </p>
       </div>

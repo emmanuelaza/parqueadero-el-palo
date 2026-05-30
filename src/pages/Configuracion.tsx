@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Settings, DollarSign, Clock, SlidersHorizontal, Save, AlertTriangle } from 'lucide-react'
+import { Save, AlertTriangle, SlidersHorizontal, DollarSign, Clock } from 'lucide-react'
+import Topbar from '../components/Topbar'
 import Tarifas from '../components/Tarifas'
 import Horarios from '../components/Horarios'
 import { useTarifas } from '../hooks/useTarifas'
@@ -14,7 +15,7 @@ export default function Configuracion() {
   const [tab, setTab] = useState<Tab>('general')
   const { tarifas, loading: tarifasLoading, actualizar } = useTarifas()
 
-  const [horarios,        setHorarios]       = useState<Horario[]>([])
+  const [horarios,        setHorarios]        = useState<Horario[]>([])
   const [horariosLoading, setHorariosLoading] = useState(true)
 
   const cargarHorarios = useCallback(async () => {
@@ -26,89 +27,80 @@ export default function Configuracion() {
   useEffect(() => { cargarHorarios() }, [cargarHorarios])
 
   return (
-    <div className="p-6 max-w-3xl">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-          <Settings size={20} className="text-slate-600" />
+    <>
+      <Topbar title="Configuración" />
+
+      <div className="p-6 max-w-3xl">
+        {/* Tabs */}
+        <div className="flex gap-6 mb-8" style={{ borderBottom: '1px solid var(--gray-100)' }}>
+          {([
+            { key: 'general',  icon: SlidersHorizontal, label: 'General'  },
+            { key: 'tarifas',  icon: DollarSign,        label: 'Tarifas'  },
+            { key: 'horarios', icon: Clock,             label: 'Horarios' },
+          ] as { key: Tab; icon: React.ElementType; label: string }[]).map(t => {
+            const active = tab === t.key
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className="flex items-center gap-2 pb-3 text-sm transition-colors"
+                style={{
+                  color: active ? 'var(--blue-700)' : 'var(--gray-400)',
+                  fontWeight: active ? 600 : 500,
+                  borderBottom: active ? '2px solid var(--blue-700)' : '2px solid transparent',
+                  marginBottom: '-1px',
+                }}
+              >
+                <t.icon size={14} />
+                {t.label}
+              </button>
+            )
+          })}
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Configuración</h1>
-          <p className="text-sm text-slate-500">Ajustes generales, tarifas y horarios</p>
-        </div>
+
+        {tab === 'general' && <TabGeneral />}
+
+        {tab === 'tarifas' && (
+          <Section title="Tarifas vigentes" desc="Los cambios aplican inmediatamente a nuevos cobros.">
+            {tarifasLoading
+              ? <div className="text-sm" style={{ color: 'var(--gray-400)' }}>Cargando tarifas…</div>
+              : <Tarifas tarifas={tarifas} onActualizar={actualizar} />}
+          </Section>
+        )}
+
+        {tab === 'horarios' && (
+          <Section title="Horario de atención" desc="Define apertura y cierre por día de la semana.">
+            {horariosLoading
+              ? <div className="text-sm" style={{ color: 'var(--gray-400)' }}>Cargando horarios…</div>
+              : <Horarios horarios={horarios} onRecargar={cargarHorarios} />}
+          </Section>
+        )}
       </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-8 w-fit">
-        {([
-          { key: 'general',  icon: SlidersHorizontal, label: 'General'       },
-          { key: 'tarifas',  icon: DollarSign,        label: 'Tarifas'       },
-          { key: 'horarios', icon: Clock,             label: 'Horarios'      },
-        ] as { key: Tab; icon: React.ElementType; label: string }[]).map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-              tab === t.key
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <t.icon size={15} />
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'general' && <TabGeneral />}
-
-      {tab === 'tarifas' && (
-        <div>
-          <div className="mb-4">
-            <h2 className="text-lg font-bold text-slate-900">Tarifas vigentes</h2>
-            <p className="text-sm text-slate-500">Los cambios aplican inmediatamente a nuevos cobros.</p>
-          </div>
-          {tarifasLoading
-            ? <div className="text-slate-400 py-4">Cargando tarifas…</div>
-            : <Tarifas tarifas={tarifas} onActualizar={actualizar} />
-          }
-        </div>
-      )}
-
-      {tab === 'horarios' && (
-        <div>
-          <div className="mb-4">
-            <h2 className="text-lg font-bold text-slate-900">Horario de atención</h2>
-            <p className="text-sm text-slate-500">Define apertura y cierre por día de la semana.</p>
-          </div>
-          {horariosLoading
-            ? <div className="text-slate-400 py-4">Cargando horarios…</div>
-            : <Horarios horarios={horarios} onRecargar={cargarHorarios} />
-          }
-        </div>
-      )}
-    </div>
+    </>
   )
 }
 
 // ─── Tab General ─────────────────────────────────────────────────────────────
 
 function TabGeneral() {
-  const { nombreParqueadero, totalEspacios, alertaHoras, direccion, horarioTexto, operarioPorDefecto, actualizarConfig } = useConfig()
+  const {
+    nombreParqueadero, totalEspacios, alertaHoras,
+    direccion, horarioTexto, operarioPorDefecto, actualizarConfig,
+  } = useConfig()
 
-  const [nombre,    setNombre]    = useState(nombreParqueadero)
-  const [espacios,  setEspacios]  = useState(String(totalEspacios))
-  const [alerta,    setAlerta]    = useState(String(alertaHoras))
-  const [dir,       setDir]       = useState(direccion)
-  const [horario,   setHorario]   = useState(horarioTexto)
-  const [operario,  setOperario]  = useState(operarioPorDefecto)
+  const [nombre,   setNombre]   = useState(nombreParqueadero)
+  const [espacios, setEspacios] = useState(String(totalEspacios))
+  const [alerta,   setAlerta]   = useState(String(alertaHoras))
+  const [dir,      setDir]      = useState(direccion)
+  const [horario,  setHorario]  = useState(horarioTexto)
+  const [operario, setOperario] = useState(operarioPorDefecto)
 
-  // Sync with context when it loads
-  useEffect(() => { setNombre(nombreParqueadero) },      [nombreParqueadero])
-  useEffect(() => { setEspacios(String(totalEspacios)) }, [totalEspacios])
-  useEffect(() => { setAlerta(String(alertaHoras))    },  [alertaHoras])
-  useEffect(() => { setDir(direccion) },                  [direccion])
-  useEffect(() => { setHorario(horarioTexto) },           [horarioTexto])
-  useEffect(() => { setOperario(operarioPorDefecto) },    [operarioPorDefecto])
+  useEffect(() => { setNombre(nombreParqueadero) },        [nombreParqueadero])
+  useEffect(() => { setEspacios(String(totalEspacios)) },  [totalEspacios])
+  useEffect(() => { setAlerta(String(alertaHoras)) },      [alertaHoras])
+  useEffect(() => { setDir(direccion) },                   [direccion])
+  useEffect(() => { setHorario(horarioTexto) },            [horarioTexto])
+  useEffect(() => { setOperario(operarioPorDefecto) },     [operarioPorDefecto])
 
   const [loadingN, setLoadingN] = useState(false)
   const [loadingE, setLoadingE] = useState(false)
@@ -131,24 +123,20 @@ function TabGeneral() {
       toast.error('Debe ser entre 1 y 100')
       return
     }
-
     if (n < totalEspacios) {
-      // Warn if active motos would be outside new range
       const { data } = await supabase
         .from('motos')
         .select('espacio')
         .is('hora_salida', null)
         .gt('espacio', n)
-
       const afectadas = (data ?? []) as Pick<Moto, 'espacio'>[]
       if (afectadas.length > 0) {
         const espaciosOcupados = afectadas.map(m => `#${m.espacio}`).join(', ')
         if (!window.confirm(
-          `Hay ${afectadas.length} moto(s) en espacios que quedarían fuera del nuevo rango (${espaciosOcupados}).\n\n¿Desea continuar de todas formas?`
+          `Hay ${afectadas.length} moto(s) en espacios que quedarían fuera del nuevo rango (${espaciosOcupados}).\n\n¿Continuar?`,
         )) return
       }
     }
-
     setLoadingE(true)
     const ok = await actualizarConfig('total_espacios', String(n))
     if (ok) toast.success(`Grid actualizado a ${n} espacios`)
@@ -157,10 +145,7 @@ function TabGeneral() {
 
   const guardarAlerta = async () => {
     const n = parseInt(alerta)
-    if (isNaN(n) || n < 1) {
-      toast.error('Debe ser un número mayor a 0')
-      return
-    }
+    if (isNaN(n) || n < 1) { toast.error('Debe ser un número mayor a 0'); return }
     setLoadingA(true)
     const ok = await actualizarConfig('alerta_horas', String(n))
     if (ok) toast.success('Alerta de abandono actualizada')
@@ -189,120 +174,67 @@ function TabGeneral() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Nombre */}
-      <ConfigCard
-        title="Nombre del parqueadero"
-        desc="Se muestra en el encabezado y en los recibos de impresión."
-      >
+    <div className="space-y-5">
+      <ConfigCard title="Nombre del parqueadero" desc="Aparece en encabezado, login y tiquetes.">
         <div className="flex gap-3">
-          <input
-            type="text"
-            value={nombre}
-            onChange={e => setNombre(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && guardarNombre()}
-            className="flex-1 px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none"
-          />
+          <ConfigInput value={nombre} onChange={setNombre} onEnter={guardarNombre} />
           <SaveBtn onClick={guardarNombre} loading={loadingN} />
         </div>
       </ConfigCard>
 
-      {/* Espacios */}
-      <ConfigCard
-        title="Número de espacios"
-        desc="El grid del parqueadero se actualiza inmediatamente. Mínimo 1, máximo 100."
-      >
+      <ConfigCard title="Número de espacios" desc="El grid se actualiza inmediatamente. Mínimo 1, máximo 100.">
         <div className="flex gap-3 items-center">
-          <input
+          <ConfigInput
             type="number"
             value={espacios}
-            onChange={e => setEspacios(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && guardarEspacios()}
-            min={1}
-            max={100}
-            className="w-28 px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none text-center font-bold"
+            onChange={setEspacios}
+            onEnter={guardarEspacios}
+            width={120}
+            center
           />
-          <span className="text-sm text-slate-500">espacios</span>
+          <span className="text-sm" style={{ color: 'var(--gray-400)' }}>espacios</span>
           <SaveBtn onClick={guardarEspacios} loading={loadingE} />
         </div>
         {parseInt(espacios) < totalEspacios && (
-          <div className="flex items-center gap-2 mt-2 text-sm text-amber-700">
+          <div className="flex items-center gap-2 mt-2 text-sm" style={{ color: 'var(--warning)' }}>
             <AlertTriangle size={14} />
             <span>Reducir espacios puede dejar motos activas sin espacio asignado</span>
           </div>
         )}
       </ConfigCard>
 
-      {/* Alerta horas */}
-      <ConfigCard
-        title="Horas para alerta de abandono"
-        desc="Motos que superen este tiempo mostrarán alerta visual en el grid."
-      >
+      <ConfigCard title="Horas para alerta de abandono" desc="Motos que superen este tiempo mostrarán alerta visual en el grid.">
         <div className="flex gap-3 items-center">
-          <input
+          <ConfigInput
             type="number"
             value={alerta}
-            onChange={e => setAlerta(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && guardarAlerta()}
-            min={1}
-            max={72}
-            className="w-28 px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none text-center font-bold"
+            onChange={setAlerta}
+            onEnter={guardarAlerta}
+            width={120}
+            center
           />
-          <span className="text-sm text-slate-500">horas</span>
+          <span className="text-sm" style={{ color: 'var(--gray-400)' }}>horas</span>
           <SaveBtn onClick={guardarAlerta} loading={loadingA} />
         </div>
       </ConfigCard>
 
-      {/* Dirección */}
-      <ConfigCard
-        title="Dirección"
-        desc="Se muestra en los tiquetes de entrada y salida."
-      >
+      <ConfigCard title="Dirección" desc="Se muestra en los tiquetes de entrada y salida.">
         <div className="flex gap-3">
-          <input
-            type="text"
-            value={dir}
-            onChange={e => setDir(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && guardarDireccion()}
-            placeholder="Calle 123 #45-67, Medellín"
-            className="flex-1 px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none"
-          />
+          <ConfigInput value={dir} onChange={setDir} onEnter={guardarDireccion} placeholder="Calle 123 #45-67, Medellín" />
           <SaveBtn onClick={guardarDireccion} loading={loadingD} />
         </div>
       </ConfigCard>
 
-      {/* Horario texto */}
-      <ConfigCard
-        title="Horario de atención"
-        desc="Texto libre para mostrar en la configuración y comunicaciones."
-      >
+      <ConfigCard title="Horario de atención" desc="Texto libre para mostrar en comunicaciones.">
         <div className="flex gap-3">
-          <input
-            type="text"
-            value={horario}
-            onChange={e => setHorario(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && guardarHorario()}
-            placeholder="Lun–Sáb 6am – 10pm"
-            className="flex-1 px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none"
-          />
+          <ConfigInput value={horario} onChange={setHorario} onEnter={guardarHorario} placeholder="Lun–Sáb 6am – 10pm" />
           <SaveBtn onClick={guardarHorario} loading={loadingH} />
         </div>
       </ConfigCard>
 
-      {/* Operario por defecto */}
-      <ConfigCard
-        title="Operario por defecto"
-        desc='Pre-rellena el campo "Atendido por" en el modal de salida. El operario puede cambiarlo en cada turno.'
-      >
+      <ConfigCard title="Operario por defecto" desc='Pre-rellena el campo "Atendido por" en el modal de salida.'>
         <div className="flex gap-3">
-          <input
-            type="text"
-            value={operario}
-            onChange={e => setOperario(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && guardarOperario()}
-            placeholder="Nombre del operario"
-            className="flex-1 px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none"
-          />
+          <ConfigInput value={operario} onChange={setOperario} onEnter={guardarOperario} placeholder="Nombre del operario" />
           <SaveBtn onClick={guardarOperario} loading={loadingO} />
         </div>
       </ConfigCard>
@@ -310,15 +242,89 @@ function TabGeneral() {
   )
 }
 
-function ConfigCard({ title, desc, children }: {
-  title: string; desc: string; children: React.ReactNode
-}) {
+// ─── Shared ────────────────────────────────────────────────────────────────────
+
+function Section({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border-2 border-slate-200 rounded-2xl p-5">
-      <h3 className="font-bold text-slate-900 mb-0.5">{title}</h3>
-      <p className="text-sm text-slate-500 mb-4">{desc}</p>
+    <div
+      className="bg-white p-6"
+      style={{
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-sm)',
+        borderLeft: '4px solid var(--yellow-400)',
+      }}
+    >
+      <h2 className="text-base font-bold mb-1" style={{ color: 'var(--blue-900)' }}>{title}</h2>
+      <p className="text-sm mb-5" style={{ color: 'var(--gray-600)', borderBottom: '1px solid var(--gray-100)', paddingBottom: 12 }}>
+        {desc}
+      </p>
       {children}
     </div>
+  )
+}
+
+function ConfigCard({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
+  return (
+    <div
+      className="bg-white p-5"
+      style={{
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-sm)',
+        borderLeft: '4px solid var(--yellow-400)',
+      }}
+    >
+      <h3 className="font-bold text-[15px]" style={{ color: 'var(--blue-900)' }}>{title}</h3>
+      <p className="text-[13px] mb-3 mt-0.5" style={{ color: 'var(--gray-600)' }}>{desc}</p>
+      {children}
+    </div>
+  )
+}
+
+function ConfigInput({
+  type = 'text',
+  value,
+  onChange,
+  onEnter,
+  placeholder,
+  width,
+  center,
+}: {
+  type?: string
+  value: string
+  onChange: (v: string) => void
+  onEnter?: () => void
+  placeholder?: string
+  width?: number
+  center?: boolean
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      onKeyDown={e => { if (e.key === 'Enter' && onEnter) onEnter() }}
+      placeholder={placeholder}
+      className={width ? '' : 'flex-1'}
+      style={{
+        width,
+        border: '1.5px solid var(--gray-100)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '10px 14px',
+        fontSize: 14,
+        outline: 'none',
+        textAlign: center ? ('center' as const) : ('left' as const),
+        fontWeight: center ? 700 : 500,
+        color: 'var(--blue-900)',
+      }}
+      onFocus={e => {
+        e.currentTarget.style.borderColor = 'var(--blue-700)'
+        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(27,47,190,0.1)'
+      }}
+      onBlur={e => {
+        e.currentTarget.style.borderColor = 'var(--gray-100)'
+        e.currentTarget.style.boxShadow = 'none'
+      }}
+    />
   )
 }
 
@@ -327,9 +333,16 @@ function SaveBtn({ onClick, loading }: { onClick: () => void; loading: boolean }
     <button
       onClick={onClick}
       disabled={loading}
-      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 disabled:opacity-50 transition-colors text-sm"
+      className="flex items-center gap-1.5 font-semibold transition-all disabled:opacity-50 text-sm"
+      style={{
+        padding: '10px 16px',
+        backgroundColor: 'var(--blue-700)',
+        color: 'var(--white)',
+        borderRadius: 'var(--radius-sm)',
+        border: 'none',
+      }}
     >
-      <Save size={15} />
+      <Save size={14} />
       {loading ? '…' : 'Guardar'}
     </button>
   )

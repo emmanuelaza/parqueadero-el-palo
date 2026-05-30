@@ -1,7 +1,7 @@
 import type { TarifaTipo, TarifasMap } from '../types'
 
 export const TOTAL_ESPACIOS = Number(import.meta.env.VITE_TOTAL_ESPACIOS ?? 30)
-export const PARKING_NAME = import.meta.env.VITE_PARKING_NAME ?? 'El Palo Parking'
+export const PARKING_NAME = import.meta.env.VITE_PARKING_NAME ?? 'Punto Moto. El Palo'
 export const PARKING_CIUDAD = import.meta.env.VITE_PARKING_CIUDAD ?? 'Medellín, Colombia'
 
 export const DIAS_SEMANA = [

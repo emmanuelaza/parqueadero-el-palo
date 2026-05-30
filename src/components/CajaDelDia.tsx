@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  DollarSign, Bike, TrendingUp, RefreshCw,
+  DollarSign, Bike, Banknote, Smartphone, RefreshCw,
   Lock, CheckCircle, BarChart2,
 } from 'lucide-react'
+import Topbar from './Topbar'
 import { supabase } from '../lib/supabase'
 import {
   formatCOP, formatFecha, fechaHoyBogota,
@@ -18,56 +19,55 @@ export default function CajaDelDia() {
   const [tab, setTab] = useState<TabKey>('hoy')
 
   return (
-    <div className="p-6 max-w-5xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Caja</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
+    <>
+      <Topbar title="Caja" />
+
+      <div className="p-6 max-w-6xl">
+        {/* Tabs */}
+        <div className="flex gap-6 mb-6" style={{ borderBottom: '1px solid var(--gray-100)' }}>
+          {([
+            { key: 'hoy',    label: 'Hoy'         },
+            { key: 'semana', label: 'Esta semana' },
+            { key: 'mes',    label: 'Este mes'    },
+          ] as { key: TabKey; label: string }[]).map(t => {
+            const active = tab === t.key
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className="pb-3 text-sm transition-colors"
+                style={{
+                  color: active ? 'var(--blue-700)' : 'var(--gray-400)',
+                  fontWeight: active ? 600 : 500,
+                  borderBottom: active ? '2px solid var(--blue-700)' : '2px solid transparent',
+                  marginBottom: '-1px',
+                }}
+              >
+                {t.label}
+              </button>
+            )
+          })}
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-6 w-fit">
-        {([
-          { key: 'hoy',    label: 'Hoy'           },
-          { key: 'semana', label: 'Esta semana'    },
-          { key: 'mes',    label: 'Este mes'       },
-        ] as { key: TabKey; label: string }[]).map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-              tab === t.key
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+        {tab === 'hoy'    && <TabHoy />}
+        {tab === 'semana' && <TabPeriodo clave="semana" />}
+        {tab === 'mes'    && <TabPeriodo clave="mes" />}
       </div>
-
-      {tab === 'hoy'    && <TabHoy />}
-      {tab === 'semana' && <TabPeriodo clave="semana" />}
-      {tab === 'mes'    && <TabPeriodo clave="mes" />}
-    </div>
+    </>
   )
 }
 
 // ─── Tab Hoy ─────────────────────────────────────────────────────────────────
 
 function TabHoy() {
-  const [motos,      setMotos]      = useState<Moto[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [cierre,     setCierre]     = useState<CajaCierre | null>(null)
-  const [showModal,  setShowModal]  = useState(false)
+  const [motos,     setMotos]     = useState<Moto[]>([])
+  const [loading,   setLoading]   = useState(true)
+  const [cierre,    setCierre]    = useState<CajaCierre | null>(null)
+  const [showModal, setShowModal] = useState(false)
 
   const cargar = useCallback(async () => {
     setLoading(true)
     const hoy = fechaHoyBogota()
-
     const [{ data: motosData }, { data: cierreData }] = await Promise.all([
       supabase
         .from('motos')
@@ -83,7 +83,6 @@ function TabHoy() {
         .eq('fecha', hoy)
         .maybeSingle(),
     ])
-
     setMotos((motosData ?? []) as Moto[])
     setCierre(cierreData as CajaCierre | null)
     setLoading(false)
@@ -91,7 +90,6 @@ function TabHoy() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  // Also count mensualidades paid today (hora_entrada, tipo='mensualidad')
   const [mensHoy, setMensHoy] = useState<Moto[]>([])
   useEffect(() => {
     const hoy = fechaHoyBogota()
@@ -107,9 +105,11 @@ function TabHoy() {
 
   const todosMov = [
     ...motos.filter(m => m.tipo !== 'mensualidad'),
-    ...mensHoy,
+    ...mensHoy.filter(m => (m.monto_cobrado ?? 0) > 0),
   ]
-  const totalIngresos = todosMov.reduce((s, m) => s + (m.monto_cobrado ?? 0), 0)
+  const totalIngresos    = todosMov.reduce((s, m) => s + (m.monto_cobrado ?? 0), 0)
+  const totalEfectivo    = todosMov.filter(m => m.metodo_pago === 'efectivo')     .reduce((s, m) => s + (m.monto_cobrado ?? 0), 0)
+  const totalTransfer    = todosMov.filter(m => m.metodo_pago === 'transferencia').reduce((s, m) => s + (m.monto_cobrado ?? 0), 0)
 
   const resumenPorTipo = (['hora', 'dia', 'mensualidad'] as TarifaTipo[]).map(t => ({
     tipo:     t,
@@ -121,99 +121,150 @@ function TabHoy() {
     <>
       {/* Closed badge */}
       {cierre && (
-        <div className="flex items-center gap-3 mb-5 px-4 py-3 bg-slate-800 text-white rounded-xl text-sm">
-          <Lock size={16} className="text-slate-400" />
-          <span>Caja <strong>CERRADA</strong> por <strong>{cierre.cerrado_por ?? '—'}</strong> a las {new Date(cierre.cerrado_at).toLocaleTimeString('es-CO', { hour12: false })}</span>
+        <div
+          className="flex items-center gap-3 mb-5 px-4 py-3 text-sm"
+          style={{
+            backgroundColor: 'var(--blue-900)',
+            color: 'var(--white)',
+            borderRadius: 'var(--radius-md)',
+          }}
+        >
+          <Lock size={16} style={{ color: 'var(--yellow-400)' }} />
+          <span>
+            Caja <strong>CERRADA</strong> por <strong>{cierre.cerrado_por ?? '—'}</strong>
+            {' '}a las {new Date(cierre.cerrado_at).toLocaleTimeString('es-CO', { hour12: false })}
+          </span>
         </div>
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <KpiCard icon={<DollarSign size={24} className="text-orange-600" />}  label="Total recaudado"   value={formatCOP(totalIngresos)} bg="bg-orange-50" border="border-orange-200" />
-        <KpiCard icon={<Bike size={24} className="text-blue-600" />}          label="Motos atendidas"   value={String(todosMov.length)} bg="bg-blue-50" border="border-blue-200" />
-        <KpiCard icon={<TrendingUp size={24} className="text-green-600" />}   label="Ticket promedio"   value={todosMov.length > 0 ? formatCOP(totalIngresos / todosMov.length) : '—'} bg="bg-green-50" border="border-green-200" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <KpiCard
+          icon={<DollarSign size={20} style={{ color: 'var(--blue-700)' }} />}
+          label="TOTAL"
+          value={formatCOP(totalIngresos)}
+          accent="var(--blue-700)"
+          valueColor="var(--blue-700)"
+        />
+        <KpiCard
+          icon={<Banknote size={20} style={{ color: 'var(--success)' }} />}
+          label="EFECTIVO"
+          value={formatCOP(totalEfectivo)}
+          accent="var(--success)"
+          valueColor="var(--success)"
+        />
+        <KpiCard
+          icon={<Smartphone size={20} style={{ color: '#854D0E' }} />}
+          label="TRANSFERENCIA"
+          value={formatCOP(totalTransfer)}
+          accent="var(--yellow-400)"
+          valueColor="#854D0E"
+        />
+        <KpiCard
+          icon={<Bike size={20} style={{ color: 'var(--gray-600)' }} />}
+          label="MOTOS"
+          value={String(todosMov.length)}
+          accent="var(--gray-400)"
+          valueColor="var(--blue-900)"
+        />
       </div>
 
       {/* Desglose por tipo */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-5">
-        <h2 className="font-bold text-slate-800 mb-4">Desglose por tipo</h2>
+      <Card className="mb-5">
+        <h2 className="text-sm font-bold mb-4" style={{ color: 'var(--blue-900)' }}>
+          Desglose por tipo de tarifa
+        </h2>
         <div className="grid grid-cols-3 gap-4">
           {resumenPorTipo.map(r => (
-            <div key={r.tipo} className="text-center p-3 bg-slate-50 rounded-xl">
-              <div className="text-sm font-semibold text-slate-500 mb-1">{TIPO_LABELS[r.tipo]}</div>
-              <div className="text-xl font-bold text-slate-900">{r.cantidad}</div>
-              <div className="text-sm text-slate-600 mt-1">{formatCOP(r.total)}</div>
+            <div
+              key={r.tipo}
+              className="text-center p-3"
+              style={{ backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius-md)' }}
+            >
+              <div
+                className="text-[11px] font-semibold uppercase mb-1"
+                style={{ color: 'var(--gray-400)', letterSpacing: '0.06em' }}
+              >
+                {TIPO_LABELS[r.tipo]}
+              </div>
+              <div className="text-xl font-extrabold" style={{ color: 'var(--blue-900)' }}>{r.cantidad}</div>
+              <div className="text-[13px] mt-1" style={{ color: 'var(--gray-600)' }}>
+                {formatCOP(r.total)}
+              </div>
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Desglose por método de pago */}
-      {todosMov.some(m => m.metodo_pago) && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-5">
-          <h2 className="font-bold text-slate-800 mb-4">Desglose por método de pago</h2>
-          <div className="grid grid-cols-2 gap-4">
-            {(['efectivo', 'transferencia'] as const).map(mp => {
-              const movs = todosMov.filter(m => m.metodo_pago === mp)
-              return (
-                <div key={mp} className="text-center p-3 bg-slate-50 rounded-xl">
-                  <div className="text-sm font-semibold text-slate-500 mb-1 capitalize">{mp}</div>
-                  <div className="text-xl font-bold text-slate-900">{movs.length}</div>
-                  <div className="text-sm text-slate-600 mt-1">
-                    {formatCOP(movs.reduce((s, m) => s + (m.monto_cobrado ?? 0), 0))}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
+      </Card>
 
       {/* Movimientos */}
-      <div className="bg-white rounded-2xl border border-slate-200 mb-6">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="font-bold text-slate-800">Movimientos de hoy</h2>
-          <button onClick={cargar} disabled={loading} className="text-slate-400 hover:text-slate-600">
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-bold" style={{ color: 'var(--blue-900)' }}>
+            Movimientos de hoy
+          </h2>
+          <button
+            onClick={cargar}
+            disabled={loading}
+            style={{ color: 'var(--gray-400)' }}
+          >
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
+
         {loading ? (
-          <div className="p-8 text-center text-slate-400">Cargando…</div>
+          <div className="py-8 text-center text-sm" style={{ color: 'var(--gray-400)' }}>Cargando…</div>
         ) : todosMov.length === 0 ? (
-          <div className="p-8 text-center text-slate-400">Sin movimientos hoy</div>
+          <div className="py-8 text-center text-sm" style={{ color: 'var(--gray-400)' }}>Sin movimientos hoy</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto -mx-5">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 text-left">
-                  <Th>Placa</Th><Th>Propietario</Th><Th>Tipo</Th><Th>Entrada</Th><Th>Salida</Th><Th right>Monto</Th>
+                <tr style={{ backgroundColor: 'var(--gray-50)' }}>
+                  <Th>Placa</Th><Th>Propietario</Th><Th>Tipo</Th>
+                  <Th>Entrada</Th><Th>Salida</Th><Th>Método</Th><Th right>Monto</Th>
                 </tr>
               </thead>
               <tbody>
                 {todosMov.map(m => (
-                  <tr key={m.id} className="border-t border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-2.5 font-bold text-slate-900">{m.placa}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{m.propietario || '—'}</td>
+                  <tr
+                    key={m.id}
+                    className="hover:bg-[var(--gray-50)] transition-colors"
+                    style={{ borderTop: '1px solid var(--gray-50)' }}
+                  >
+                    <td className="px-4 py-2.5 font-bold font-mono" style={{ color: 'var(--blue-900)' }}>{m.placa}</td>
+                    <td className="px-4 py-2.5" style={{ color: 'var(--gray-600)' }}>{m.propietario || '—'}</td>
                     <td className="px-4 py-2.5"><TipoBadge tipo={m.tipo} /></td>
-                    <td className="px-4 py-2.5 text-slate-600 tabular-nums">{formatFecha(m.hora_entrada)}</td>
-                    <td className="px-4 py-2.5 text-slate-600 tabular-nums">{m.hora_salida ? formatFecha(m.hora_salida) : <span className="text-purple-600 font-semibold">Mensualidad</span>}</td>
-                    <td className="px-4 py-2.5 text-right font-semibold text-slate-900">{formatCOP(m.monto_cobrado)}</td>
+                    <td className="px-4 py-2.5 tabular-nums text-[12.5px]" style={{ color: 'var(--gray-600)' }}>{formatFecha(m.hora_entrada)}</td>
+                    <td className="px-4 py-2.5 tabular-nums text-[12.5px]" style={{ color: 'var(--gray-600)' }}>
+                      {m.hora_salida
+                        ? formatFecha(m.hora_salida)
+                        : <span className="font-semibold" style={{ color: 'var(--blue-700)' }}>Mensualidad</span>}
+                    </td>
+                    <td className="px-4 py-2.5 capitalize text-[12.5px]" style={{ color: 'var(--gray-600)' }}>{m.metodo_pago ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-right font-bold tabular-nums" style={{ color: 'var(--blue-900)' }}>
+                      {formatCOP(m.monto_cobrado)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Cerrar caja */}
       {!cierre && (
-        <div className="flex justify-end">
+        <div className="flex justify-end mt-6">
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-800 text-white font-semibold hover:bg-slate-700 transition-colors"
+            className="flex items-center gap-2 px-5 py-3 font-bold transition-colors text-[14px]"
+            style={{
+              backgroundColor: 'var(--danger)',
+              color: 'var(--white)',
+              borderRadius: 'var(--radius-sm)',
+            }}
           >
-            <Lock size={18} />
+            <Lock size={16} />
             Cerrar caja del día
           </button>
         </div>
@@ -242,7 +293,7 @@ function TabHoy() {
   )
 }
 
-// ─── Tab Período (semana / mes) ───────────────────────────────────────────────
+// ─── Tab Período ───────────────────────────────────────────────────────────────
 
 function TabPeriodo({ clave }: { clave: 'semana' | 'mes' }) {
   const [datos,   setDatos]   = useState<DatoGrafico[]>([])
@@ -253,22 +304,15 @@ function TabPeriodo({ clave }: { clave: 'semana' | 'mes' }) {
       setLoading(true)
       const hoy   = new Date()
       let   desde = new Date(hoy)
-
-      if (clave === 'semana') {
-        desde.setDate(hoy.getDate() - 6)
-      } else {
-        desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
-      }
+      if (clave === 'semana') desde.setDate(hoy.getDate() - 6)
+      else                    desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
 
       const fechas = rangoFechas(desde, hoy)
-      const desdeFmt = fechas[0]
-      const hastaFmt = fechas[fechas.length - 1]
-
       const { data } = await supabase
         .from('caja_diaria')
         .select('fecha, total_ingresos, total_motos')
-        .gte('fecha', desdeFmt)
-        .lte('fecha', hastaFmt)
+        .gte('fecha', fechas[0])
+        .lte('fecha', fechas[fechas.length - 1])
 
       const mapaDB: Record<string, { total: number; motos: number }> = {}
       for (const row of data ?? []) {
@@ -276,7 +320,7 @@ function TabPeriodo({ clave }: { clave: 'semana' | 'mes' }) {
       }
 
       const resultado: DatoGrafico[] = fechas.map(f => {
-        const d    = new Date(f + 'T12:00:00')
+        const d = new Date(f + 'T12:00:00')
         const label = clave === 'semana'
           ? ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d.getDay()]
           : String(d.getDate())
@@ -300,31 +344,44 @@ function TabPeriodo({ clave }: { clave: 'semana' | 'mes' }) {
 
   return (
     <div>
-      {/* KPIs del período */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <KpiCard icon={<DollarSign size={24} className="text-orange-600" />} label={`Total ${clave === 'semana' ? 'semana' : 'mes'}`} value={loading ? '…' : formatCOP(totalPeriodo)} bg="bg-orange-50" border="border-orange-200" />
-        <KpiCard icon={<Bike size={24} className="text-blue-600" />}        label="Motos total"   value={loading ? '…' : String(motosPeriodo)} bg="bg-blue-50" border="border-blue-200" />
-        <KpiCard icon={<BarChart2 size={24} className="text-green-600" />}  label="Días con ingresos" value={loading ? '…' : String(diasConData)} bg="bg-green-50" border="border-green-200" />
+        <KpiCard
+          icon={<DollarSign size={20} style={{ color: 'var(--blue-700)' }} />}
+          label={`TOTAL ${clave === 'semana' ? 'SEMANA' : 'MES'}`}
+          value={loading ? '…' : formatCOP(totalPeriodo)}
+          accent="var(--blue-700)"
+          valueColor="var(--blue-700)"
+        />
+        <KpiCard
+          icon={<Bike size={20} style={{ color: 'var(--gray-600)' }} />}
+          label="MOTOS TOTAL"
+          value={loading ? '…' : String(motosPeriodo)}
+          accent="var(--gray-400)"
+          valueColor="var(--blue-900)"
+        />
+        <KpiCard
+          icon={<BarChart2 size={20} style={{ color: 'var(--success)' }} />}
+          label="DÍAS CON INGRESOS"
+          value={loading ? '…' : String(diasConData)}
+          accent="var(--success)"
+          valueColor="var(--success)"
+        />
       </div>
 
-      {/* Bar chart */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6">
-        <h2 className="font-bold text-slate-800 mb-5">
+      <Card>
+        <h2 className="text-sm font-bold mb-5" style={{ color: 'var(--blue-900)' }}>
           Ingresos por día {clave === 'semana' ? '(últimos 7 días)' : '(mes actual)'}
         </h2>
-        {loading ? (
-          <div className="h-40 flex items-center justify-center text-slate-400">Cargando…</div>
-        ) : (
-          <BarChart data={datos} />
-        )}
-      </div>
+        {loading
+          ? <div className="h-40 flex items-center justify-center text-sm" style={{ color: 'var(--gray-400)' }}>Cargando…</div>
+          : <BarChart data={datos} />}
+      </Card>
     </div>
   )
 }
 
 function BarChart({ data }: { data: DatoGrafico[] }) {
   const max = Math.max(...data.map(d => d.total), 1)
-
   return (
     <div>
       <div className="flex items-end gap-1 h-36 mb-2">
@@ -333,26 +390,35 @@ function BarChart({ data }: { data: DatoGrafico[] }) {
           const barH = Math.max(d.total > 0 ? 4 : 0, Math.round(pct * 120))
           return (
             <div key={d.fecha} className="flex-1 flex flex-col items-center group">
-              <div className="relative w-full flex items-end" style={{ height: '120px' }}>
+              <div className="relative w-full flex items-end" style={{ height: 120 }}>
                 {barH > 0 && (
                   <div
-                    className="w-full bg-orange-500 rounded-t-sm group-hover:bg-orange-400 transition-colors"
-                    style={{ height: `${barH}px` }}
+                    className="w-full transition-colors"
+                    style={{
+                      height: barH,
+                      backgroundColor: 'var(--blue-700)',
+                      borderRadius: '3px 3px 0 0',
+                    }}
                     title={`${d.label}: ${formatCOP(d.total)} · ${d.motos} moto${d.motos !== 1 ? 's' : ''}`}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--blue-600)')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--blue-700)')}
                   />
                 )}
                 {d.total === 0 && (
-                  <div className="w-full bg-slate-100 rounded-t-sm" style={{ height: '2px' }} />
+                  <div className="w-full" style={{ height: 2, backgroundColor: 'var(--gray-100)' }} />
                 )}
               </div>
             </div>
           )
         })}
       </div>
-      {/* X-axis labels */}
       <div className="flex gap-1">
         {data.map(d => (
-          <div key={d.fecha} className="flex-1 text-center text-xs text-slate-400 truncate">
+          <div
+            key={d.fecha}
+            className="flex-1 text-center text-[11px] truncate font-medium"
+            style={{ color: 'var(--gray-400)' }}
+          >
             {d.label}
           </div>
         ))}
@@ -377,93 +443,197 @@ function ModalCerrarCaja({
   const [loading,    setLoading]    = useState(false)
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-        <h2 className="text-xl font-bold text-slate-900 mb-1">Cerrar caja del día</h2>
-        <p className="text-sm text-slate-500 mb-5">Este registro queda guardado permanentemente.</p>
-
-        {/* Resumen */}
-        <div className="bg-slate-50 rounded-xl p-4 mb-5 space-y-2">
-          <div className="flex justify-between font-semibold">
-            <span className="text-slate-700">Total recaudado</span>
-            <span className="text-orange-600">{formatCOP(resumen.total)}</span>
-          </div>
-          <div className="flex justify-between text-sm text-slate-600">
-            <span>Motos atendidas</span>
-            <span>{resumen.motos}</span>
-          </div>
-          <div className="border-t border-slate-200 pt-2 mt-2 space-y-1">
-            {resumen.desglose.map(r => (
-              <div key={r.tipo} className="flex justify-between text-xs text-slate-500">
-                <span>{TIPO_LABELS[r.tipo]}: {r.cantidad}</span>
-                <span>{formatCOP(r.total)}</span>
-              </div>
-            ))}
-          </div>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 pm-overlay pm-animate-fade-in"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div
+        className="bg-white w-full max-w-md pm-animate-slide-up overflow-hidden"
+        style={{ borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)' }}
+      >
+        <div className="px-6 py-5" style={{ backgroundColor: 'var(--blue-700)', color: 'var(--white)' }}>
+          <h2 className="text-base font-bold leading-none">Cerrar caja del día</h2>
+          <p className="text-[12px] mt-1.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
+            Este registro queda guardado permanentemente
+          </p>
         </div>
 
-        <div className="space-y-3 mb-5">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Cerrado por</label>
-            <input
-              type="text"
-              value={cerradoPor}
-              onChange={e => setCerradoPor(e.target.value)}
-              placeholder="Nombre del operador"
-              autoFocus
-              className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none"
-            />
+        <div className="p-6">
+          <div
+            className="rounded-[var(--radius-md)] p-4 mb-5 space-y-2"
+            style={{ backgroundColor: 'var(--gray-50)' }}
+          >
+            <div className="flex justify-between font-semibold">
+              <span style={{ color: 'var(--blue-900)' }}>Total recaudado</span>
+              <span style={{ color: 'var(--blue-700)' }}>{formatCOP(resumen.total)}</span>
+            </div>
+            <div className="flex justify-between text-sm" style={{ color: 'var(--gray-600)' }}>
+              <span>Motos atendidas</span>
+              <span>{resumen.motos}</span>
+            </div>
+            <div className="pt-2 mt-2 space-y-1" style={{ borderTop: '1px solid var(--gray-100)' }}>
+              {resumen.desglose.map(r => (
+                <div key={r.tipo} className="flex justify-between text-xs" style={{ color: 'var(--gray-400)' }}>
+                  <span>{TIPO_LABELS[r.tipo]}: {r.cantidad}</span>
+                  <span>{formatCOP(r.total)}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">
-              Notas <span className="text-slate-400 font-normal">(opcional)</span>
-            </label>
-            <textarea
-              value={notas}
-              onChange={e => setNotas(e.target.value)}
-              placeholder="Observaciones del día…"
-              rows={2}
-              className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none resize-none text-sm"
-            />
-          </div>
-        </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={async () => {
-              setLoading(true)
-              await onConfirm(cerradoPor, notas)
-              setLoading(false)
-            }}
-            disabled={loading}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-800 text-white font-semibold hover:bg-slate-700 disabled:opacity-50 transition-colors"
-          >
-            <CheckCircle size={18} />
-            {loading ? 'Guardando…' : 'Confirmar cierre'}
-          </button>
+          <div className="space-y-3 mb-5">
+            <div>
+              <label className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--blue-900)' }}>
+                Cerrado por
+              </label>
+              <input
+                type="text"
+                value={cerradoPor}
+                onChange={e => setCerradoPor(e.target.value)}
+                placeholder="Nombre del operador"
+                autoFocus
+                className="w-full"
+                style={{
+                  border: '1.5px solid var(--gray-100)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '10px 14px',
+                  fontSize: 14,
+                  outline: 'none',
+                }}
+                onFocus={e => {
+                  e.currentTarget.style.borderColor = 'var(--blue-700)'
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(27,47,190,0.1)'
+                }}
+                onBlur={e => {
+                  e.currentTarget.style.borderColor = 'var(--gray-100)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--blue-900)' }}>
+                Notas <span className="font-normal ml-1" style={{ color: 'var(--gray-400)' }}>(opcional)</span>
+              </label>
+              <textarea
+                value={notas}
+                onChange={e => setNotas(e.target.value)}
+                placeholder="Observaciones del día…"
+                rows={2}
+                className="w-full resize-none"
+                style={{
+                  border: '1.5px solid var(--gray-100)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '10px 14px',
+                  fontSize: 14,
+                  outline: 'none',
+                }}
+                onFocus={e => {
+                  e.currentTarget.style.borderColor = 'var(--blue-700)'
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(27,47,190,0.1)'
+                }}
+                onBlur={e => {
+                  e.currentTarget.style.borderColor = 'var(--gray-100)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 font-semibold transition-colors text-sm"
+              style={{
+                padding: '13px 24px',
+                border: '1.5px solid var(--gray-100)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--gray-400)',
+                backgroundColor: 'transparent',
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={async () => { setLoading(true); await onConfirm(cerradoPor, notas); setLoading(false) }}
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-2 font-bold transition-all disabled:opacity-50 text-sm"
+              style={{
+                padding: '13px 24px',
+                backgroundColor: 'var(--danger)',
+                color: 'var(--white)',
+                borderRadius: 'var(--radius-sm)',
+                border: 'none',
+              }}
+            >
+              <CheckCircle size={16} />
+              {loading ? 'Guardando…' : 'Confirmar cierre'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-// ─── Shared sub-components ────────────────────────────────────────────────────
+// ─── Shared ────────────────────────────────────────────────────────────────────
 
-function KpiCard({ icon, label, value, bg, border }: {
-  icon: React.ReactNode; label: string; value: string; bg: string; border: string
+function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={`bg-white p-5 ${className}`}
+      style={{
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-sm)',
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function KpiCard({
+  icon, label, value, accent, valueColor,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  accent: string
+  valueColor: string
 }) {
   return (
-    <div className={`${bg} ${border} border-2 rounded-2xl p-5 flex items-center gap-4`}>
-      <div className="shrink-0">{icon}</div>
-      <div>
-        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</div>
-        <div className="text-2xl font-bold text-slate-900 mt-1">{value}</div>
+    <div
+      className="bg-white flex items-center gap-3"
+      style={{
+        padding: '18px 20px',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-sm)',
+        borderLeft: `4px solid ${accent}`,
+      }}
+    >
+      <div
+        className="shrink-0 flex items-center justify-center"
+        style={{
+          width: 40,
+          height: 40,
+          backgroundColor: 'var(--gray-50)',
+          borderRadius: 'var(--radius-md)',
+        }}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div
+          className="text-[10px] font-semibold uppercase mb-1"
+          style={{ color: 'var(--gray-400)', letterSpacing: '0.06em' }}
+        >
+          {label}
+        </div>
+        <div
+          className="text-xl font-extrabold leading-none tabular-nums truncate"
+          style={{ color: valueColor }}
+        >
+          {value}
+        </div>
       </div>
     </div>
   )
@@ -471,20 +641,31 @@ function KpiCard({ icon, label, value, bg, border }: {
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   return (
-    <th className={`px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide ${right ? 'text-right' : ''}`}>
+    <th
+      className={`px-4 py-2.5 text-[11px] font-semibold uppercase ${right ? 'text-right' : 'text-left'}`}
+      style={{ color: 'var(--blue-900)', letterSpacing: '0.04em' }}
+    >
       {children}
     </th>
   )
 }
 
 function TipoBadge({ tipo }: { tipo: TarifaTipo }) {
-  const c: Record<TarifaTipo, string> = {
-    hora:        'bg-blue-100 text-blue-700',
-    dia:         'bg-green-100 text-green-700',
-    mensualidad: 'bg-purple-100 text-purple-700',
+  const palette: Record<TarifaTipo, { bg: string; color: string }> = {
+    hora:        { bg: '#DBEAFE', color: '#1B2FBE' },
+    dia:         { bg: '#DCFCE7', color: '#15803D' },
+    mensualidad: { bg: '#FEF3C7', color: '#854D0E' },
   }
   return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${c[tipo]}`}>
+    <span
+      className="inline-block px-2 py-0.5 text-[10.5px] font-bold uppercase"
+      style={{
+        backgroundColor: palette[tipo].bg,
+        color: palette[tipo].color,
+        borderRadius: 999,
+        letterSpacing: '0.04em',
+      }}
+    >
       {TIPO_LABELS[tipo]}
     </span>
   )

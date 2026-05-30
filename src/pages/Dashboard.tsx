@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { RefreshCw, Search, X } from 'lucide-react'
+import { RefreshCw, Search, X, LayoutGrid, Bike, CheckCircle2 } from 'lucide-react'
 import ParkingGrid from '../components/ParkingGrid'
+import Topbar from '../components/Topbar'
 import EntradaModal from '../components/EntradaModal'
 import SalidaModal from '../components/SalidaModal'
 import { useParking } from '../hooks/useParking'
@@ -16,7 +17,7 @@ type ModalState =
   | { tipo: 'salida'; espacio: EspacioParqueadero }
 
 export default function Dashboard() {
-  const { totalEspacios, alertaHoras, nombreParqueadero } = useConfig()
+  const { totalEspacios, alertaHoras } = useConfig()
   const { espacios, loading, registrarEntrada, registrarSalida, recargar } = useParking(totalEspacios)
   const { tarifasMap } = useTarifas()
 
@@ -25,7 +26,6 @@ export default function Dashboard() {
   const [searchInput, setSearchInput] = useState('')
   const [search,      setSearch]      = useState('')
 
-  // Debounce search
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput), 300)
     return () => clearTimeout(t)
@@ -49,98 +49,221 @@ export default function Dashboard() {
 
   const closeModal = () => setModal({ tipo: 'none' })
 
-  return (
-    <div className="p-6">
-      {/* Page header */}
-      <div className="flex items-start justify-between mb-5 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">{nombreParqueadero}</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
-        </div>
+  const ocupados = espacios.filter(e => e.ocupado).length
+  const libres   = espacios.length - ocupados
 
-        <div className="flex items-center gap-3 shrink-0">
-          {/* Search */}
-          <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              onKeyDown={e => e.key === 'Escape' && setSearchInput('')}
-              placeholder="Buscar placa…"
-              style={{ textTransform: 'uppercase' }}
-              className="pl-9 pr-8 py-2.5 w-44 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none text-sm font-semibold uppercase tracking-wide"
-            />
-            {searchInput && (
-              <button
-                onClick={() => setSearchInput('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          {hoyCobrado !== null && (
-            <div className="text-right">
-              <div className="text-xs text-slate-500 uppercase tracking-wide">Cobrado hoy</div>
-              <div className="text-xl font-bold text-orange-600">{formatCOP(hoyCobrado)}</div>
-            </div>
-          )}
-
+  // Topbar right slot: search + cobrado + recargar
+  const topbarRight = (
+    <>
+      <div className="relative">
+        <Search
+          size={15}
+          className="absolute left-3 top-1/2 -translate-y-1/2"
+          style={{ color: 'var(--blue-700)' }}
+        />
+        <input
+          type="text"
+          value={searchInput}
+          onChange={e => setSearchInput(e.target.value)}
+          onKeyDown={e => e.key === 'Escape' && setSearchInput('')}
+          placeholder="Buscar placa..."
+          style={{
+            width: 240,
+            paddingLeft: 36,
+            paddingRight: searchInput ? 32 : 14,
+            paddingTop: 8,
+            paddingBottom: 8,
+            border: '1.5px solid var(--gray-100)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: 14,
+            textTransform: 'uppercase',
+            outline: 'none',
+            letterSpacing: '0.04em',
+            fontWeight: 600,
+            color: 'var(--blue-900)',
+          }}
+          onFocus={e => {
+            e.currentTarget.style.borderColor = 'var(--blue-700)'
+            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(27,47,190,0.1)'
+          }}
+          onBlur={e => {
+            e.currentTarget.style.borderColor = 'var(--gray-100)'
+            e.currentTarget.style.boxShadow = 'none'
+          }}
+        />
+        {searchInput && (
           <button
-            onClick={recargar}
-            disabled={loading}
-            className="p-2.5 rounded-xl border-2 border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors"
-            title="Recargar"
+            onClick={() => setSearchInput('')}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2"
+            style={{ color: 'var(--gray-400)' }}
           >
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            <X size={14} />
           </button>
-        </div>
+        )}
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <RefreshCw size={32} className="animate-spin text-slate-300" />
+      <button
+        onClick={recargar}
+        disabled={loading}
+        title="Recargar"
+        className="p-2.5 transition-colors"
+        style={{
+          border: '1.5px solid var(--gray-100)',
+          borderRadius: 'var(--radius-sm)',
+          color: 'var(--blue-700)',
+        }}
+      >
+        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+      </button>
+    </>
+  )
+
+  return (
+    <>
+      <Topbar title="Parqueadero" right={topbarRight} />
+
+      <div className="p-6">
+        {/* Stats row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <StatCard
+            icon={<LayoutGrid size={22} style={{ color: 'var(--blue-900)' }} />}
+            label="ESPACIOS TOTALES"
+            value={espacios.length}
+            accent="yellow"
+          />
+          <StatCard
+            icon={<Bike size={22} style={{ color: 'var(--blue-700)' }} />}
+            label="OCUPADOS"
+            value={ocupados}
+            accent="blue"
+          />
+          <StatCard
+            icon={<CheckCircle2 size={22} style={{ color: 'var(--success)' }} />}
+            label="LIBRES"
+            value={libres}
+            accent="green"
+          />
         </div>
-      ) : (
-        <ParkingGrid
-          espacios={espacios}
-          alertaHoras={alertaHoras}
-          highlightedNumero={highlightedNumero}
-          onEspacioVacio={numero => setModal({ tipo: 'entrada', espacio: numero })}
-          onEspacioOcupado={espacio => setModal({ tipo: 'salida', espacio })}
-        />
-      )}
 
-      {/* Modals */}
-      {modal.tipo === 'entrada' && (
-        <EntradaModal
-          espacio={modal.espacio}
-          tarifasMap={tarifasMap}
-          onClose={closeModal}
-          onConfirm={async datos => {
-            const ok = await registrarEntrada(datos)
-            if (ok) cargarHoyCobrado()
-            return ok
-          }}
-        />
-      )}
+        {hoyCobrado !== null && (
+          <div
+            className="mb-5 px-5 py-3 flex items-center justify-between"
+            style={{
+              backgroundColor: 'var(--white)',
+              border: '1px solid var(--gray-100)',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <span
+              className="text-xs font-semibold uppercase tracking-wider"
+              style={{ color: 'var(--gray-400)' }}
+            >
+              Cobrado hoy
+            </span>
+            <span className="text-xl font-extrabold" style={{ color: 'var(--blue-900)' }}>
+              {formatCOP(hoyCobrado)}
+            </span>
+          </div>
+        )}
 
-      {modal.tipo === 'salida' && modal.espacio.moto && (
-        <SalidaModal
-          moto={modal.espacio.moto}
-          tarifasMap={tarifasMap}
-          onClose={closeModal}
-          onConfirm={async (id, placa, monto, metodoPago, atendidoPor) => {
-            const ok = await registrarSalida(id, placa, monto, metodoPago, atendidoPor)
-            if (ok) cargarHoyCobrado()
-            return ok
-          }}
-        />
-      )}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <RefreshCw size={28} className="animate-spin" style={{ color: 'var(--gray-100)' }} />
+          </div>
+        ) : (
+          <ParkingGrid
+            espacios={espacios}
+            alertaHoras={alertaHoras}
+            highlightedNumero={highlightedNumero}
+            onEspacioVacio={numero => setModal({ tipo: 'entrada', espacio: numero })}
+            onEspacioOcupado={espacio => setModal({ tipo: 'salida', espacio })}
+          />
+        )}
+
+        {modal.tipo === 'entrada' && (
+          <EntradaModal
+            espacio={modal.espacio}
+            tarifasMap={tarifasMap}
+            onClose={closeModal}
+            onConfirm={async datos => {
+              const ok = await registrarEntrada(datos)
+              if (ok) cargarHoyCobrado()
+              return ok
+            }}
+          />
+        )}
+
+        {modal.tipo === 'salida' && modal.espacio.moto && (
+          <SalidaModal
+            moto={modal.espacio.moto}
+            tarifasMap={tarifasMap}
+            onClose={closeModal}
+            onConfirm={async (id, placa, monto, metodoPago, atendidoPor) => {
+              const ok = await registrarSalida(id, placa, monto, metodoPago, atendidoPor)
+              if (ok) cargarHoyCobrado()
+              return ok
+            }}
+          />
+        )}
+      </div>
+    </>
+  )
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: number
+  accent: 'yellow' | 'blue' | 'green'
+}) {
+  const accentColor =
+    accent === 'yellow' ? 'var(--yellow-400)' :
+    accent === 'blue'   ? 'var(--blue-700)'   :
+                          'var(--success)'
+
+  const valueColor =
+    accent === 'yellow' ? 'var(--blue-900)' :
+    accent === 'blue'   ? 'var(--blue-700)' :
+                          'var(--success)'
+
+  return (
+    <div
+      className="bg-white flex items-center gap-4"
+      style={{
+        padding: '20px 24px',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-sm)',
+        borderLeft: `4px solid ${accentColor}`,
+      }}
+    >
+      <div
+        className="shrink-0 flex items-center justify-center"
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 'var(--radius-md)',
+          backgroundColor: 'var(--gray-50)',
+        }}
+      >
+        {icon}
+      </div>
+      <div>
+        <div
+          className="text-[11px] font-semibold uppercase mb-1"
+          style={{ color: 'var(--gray-400)', letterSpacing: '0.06em' }}
+        >
+          {label}
+        </div>
+        <div className="text-3xl font-extrabold leading-none tabular-nums" style={{ color: valueColor }}>
+          {value}
+        </div>
+      </div>
     </div>
   )
 }

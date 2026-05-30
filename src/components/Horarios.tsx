@@ -12,14 +12,12 @@ interface Props {
 
 export default function Horarios({ horarios, onRecargar }: Props) {
   if (horarios.length === 0) {
-    return <div className="text-slate-400 text-sm py-4">Cargando horarios…</div>
+    return <div className="text-sm" style={{ color: 'var(--gray-400)' }}>Cargando horarios…</div>
   }
-
-  // Sort by dia_semana
   const sorted = [...horarios].sort((a, b) => a.dia_semana - b.dia_semana)
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {sorted.map(h => (
         <HorarioRow key={h.id} horario={h} onRecargar={onRecargar} />
       ))}
@@ -45,10 +43,8 @@ function HorarioRow({ horario, onRecargar }: { horario: Horario; onRecargar: () 
       .from('horarios')
       .update({ hora_apertura: apertura, hora_cierre: cierre, activo })
       .eq('id', horario.id)
-
-    if (error) {
-      toast.error('Error guardando horario')
-    } else {
+    if (error) toast.error('Error guardando horario')
+    else {
       toast.success(`Horario del ${DIAS_SEMANA[horario.dia_semana]} actualizado`)
       setEditando(false)
       onRecargar()
@@ -66,76 +62,104 @@ function HorarioRow({ horario, onRecargar }: { horario: Horario; onRecargar: () 
   const isWeekend = horario.dia_semana === 0 || horario.dia_semana === 6
 
   return (
-    <div className={`border-2 rounded-2xl p-4 transition-colors ${
-      activo
-        ? 'bg-white border-slate-200'
-        : 'bg-slate-50 border-slate-100 opacity-60'
-    }`}>
-      <div className="flex items-center gap-4">
-        {/* Day label */}
-        <div className="w-28 shrink-0">
-          <span className={`font-bold ${isWeekend ? 'text-orange-600' : 'text-slate-800'}`}>
-            {DIAS_SEMANA[horario.dia_semana]}
-          </span>
-        </div>
-
-        {/* Toggle active */}
-        <button
-          onClick={() => { setActivo(!activo); setEditando(true) }}
-          className="text-slate-400 hover:text-slate-600 transition-colors shrink-0"
-          title={activo ? 'Desactivar' : 'Activar'}
+    <div
+      className="p-4 flex items-center gap-4 transition-colors"
+      style={{
+        backgroundColor: activo ? 'var(--white)' : 'var(--gray-50)',
+        border: '1px solid var(--gray-100)',
+        borderRadius: 'var(--radius-md)',
+        opacity: activo ? 1 : 0.6,
+      }}
+    >
+      <div className="w-24 shrink-0">
+        <span
+          className="font-bold text-sm"
+          style={{ color: isWeekend ? 'var(--yellow-400)' : 'var(--blue-900)' }}
         >
-          {activo
-            ? <ToggleRight size={24} className="text-green-500" />
-            : <ToggleLeft  size={24} className="text-slate-300" />
-          }
-        </button>
-
-        {/* Times */}
-        {activo ? (
-          <>
-            <div className="flex items-center gap-2 flex-1">
-              <label className="text-sm text-slate-500 shrink-0">Apertura</label>
-              <input
-                type="time"
-                value={apertura}
-                onChange={e => { setApertura(e.target.value); setEditando(true) }}
-                className="px-3 py-1.5 rounded-lg border-2 border-slate-200 focus:border-orange-400 focus:outline-none text-sm font-mono"
-              />
-              <span className="text-slate-300 text-sm">–</span>
-              <label className="text-sm text-slate-500 shrink-0">Cierre</label>
-              <input
-                type="time"
-                value={cierre}
-                onChange={e => { setCierre(e.target.value); setEditando(true) }}
-                className="px-3 py-1.5 rounded-lg border-2 border-slate-200 focus:border-orange-400 focus:outline-none text-sm font-mono"
-              />
-            </div>
-          </>
-        ) : (
-          <span className="text-sm text-slate-400 flex-1">Cerrado</span>
-        )}
-
-        {/* Save / Cancel */}
-        {(editando || dirty) && (
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors"
-            >
-              <Save size={14} />
-              {loading ? '…' : 'Guardar'}
-            </button>
-            <button
-              onClick={handleCancel}
-              className="px-3 py-1.5 rounded-xl border-2 border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors"
-            >
-              Cancelar
-            </button>
-          </div>
-        )}
+          {DIAS_SEMANA[horario.dia_semana]}
+        </span>
       </div>
+
+      <button
+        onClick={() => { setActivo(!activo); setEditando(true) }}
+        className="shrink-0"
+        title={activo ? 'Desactivar' : 'Activar'}
+      >
+        {activo
+          ? <ToggleRight size={22} style={{ color: 'var(--success)' }} />
+          : <ToggleLeft  size={22} style={{ color: 'var(--gray-400)' }} />}
+      </button>
+
+      {activo ? (
+        <div className="flex items-center gap-2 flex-1">
+          <label className="text-[12px] shrink-0" style={{ color: 'var(--gray-400)' }}>Apertura</label>
+          <input
+            type="time"
+            value={apertura}
+            onChange={e => { setApertura(e.target.value); setEditando(true) }}
+            style={{
+              padding: '6px 10px',
+              border: '1.5px solid var(--gray-100)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 13,
+              fontFamily: 'monospace',
+              outline: 'none',
+              color: 'var(--blue-900)',
+            }}
+          />
+          <span className="text-sm" style={{ color: 'var(--gray-400)' }}>–</span>
+          <label className="text-[12px] shrink-0" style={{ color: 'var(--gray-400)' }}>Cierre</label>
+          <input
+            type="time"
+            value={cierre}
+            onChange={e => { setCierre(e.target.value); setEditando(true) }}
+            style={{
+              padding: '6px 10px',
+              border: '1.5px solid var(--gray-100)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 13,
+              fontFamily: 'monospace',
+              outline: 'none',
+              color: 'var(--blue-900)',
+            }}
+          />
+        </div>
+      ) : (
+        <span className="text-sm flex-1" style={{ color: 'var(--gray-400)' }}>Cerrado</span>
+      )}
+
+      {(editando || dirty) && (
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            className="flex items-center gap-1.5 font-bold transition-colors disabled:opacity-50 text-[12px]"
+            style={{
+              padding: '6px 12px',
+              backgroundColor: 'var(--yellow-400)',
+              color: 'var(--blue-900)',
+              borderRadius: 'var(--radius-sm)',
+              border: 'none',
+            }}
+          >
+            <Save size={12} />
+            {loading ? '…' : 'Guardar'}
+          </button>
+          <button
+            onClick={handleCancel}
+            className="font-semibold transition-colors text-[12px]"
+            style={{
+              padding: '6px 10px',
+              border: '1.5px solid var(--gray-100)',
+              color: 'var(--gray-400)',
+              backgroundColor: 'transparent',
+              borderRadius: 'var(--radius-sm)',
+            }}
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
     </div>
   )
 }

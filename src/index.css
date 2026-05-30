@@ -3,21 +3,40 @@
 @tailwind utilities;
 
 /* ================================================================
-   BRAND CSS VARIABLES
-   Cambiar aquí para actualizar el branding de toda la app.
+   BRAND CSS VARIABLES — Punto Moto. El Palo | Parqueadero
    ================================================================ */
 :root {
-  /* Primary palette */
-  --brand-primary:      #1e293b;   /* slate-800  — fondo sidebar */
-  --brand-secondary:    #334155;   /* slate-700  — hover sidebar */
-  --brand-accent:       #f97316;   /* orange-500 — color acento  */
-  --brand-accent-hover: #ea6c0a;   /* orange-600 — hover acento  */
+  /* Brand palette */
+  --blue-900:   #0F1A6E;
+  --blue-700:   #1B2FBE;
+  --blue-600:   #2D44D4;
+  --yellow-400: #FFD700;
+  --yellow-300: #FFE44D;
 
-  /* Surface & text */
-  --brand-surface:      #ffffff;
-  --brand-border:       #e2e8f0;   /* slate-200  */
-  --brand-text:         #0f172a;   /* slate-900  */
-  --brand-text-muted:   #64748b;   /* slate-500  */
+  /* Neutrals */
+  --white:    #FFFFFF;
+  --gray-50:  #F4F5FF;
+  --gray-100: #E8EAFF;
+  --gray-400: #9CA3AF;
+  --gray-600: #4B5563;
+
+  /* Status */
+  --success: #16A34A;
+  --danger:  #DC2626;
+  --warning: #D97706;
+
+  /* Geometry */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px  rgba(15, 26, 110, 0.08);
+  --shadow-md: 0 4px 16px rgba(15, 26, 110, 0.12);
+  --shadow-lg: 0 8px 32px rgba(15, 26, 110, 0.18);
+
+  /* Motion */
+  --transition: all 0.15s ease;
 }
 
 /* ================================================================
@@ -25,9 +44,7 @@
    ================================================================ */
 *,
 *::before,
-*::after {
-  box-sizing: border-box;
-}
+*::after { box-sizing: border-box; }
 
 html {
   font-size: 16px;
@@ -36,63 +53,121 @@ html {
 
 body {
   margin: 0;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: #f8fafc; /* slate-50 */
-  color: var(--brand-text);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--gray-50);
+  color: var(--blue-900);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
+
+button { cursor: pointer; user-select: none; }
+button:disabled { cursor: not-allowed; }
 
 /* Focus visible only for keyboard navigation */
 :focus-visible {
-  outline: 2px solid var(--brand-accent);
+  outline: 2px solid var(--blue-700);
   outline-offset: 2px;
   border-radius: 4px;
 }
-
-:focus:not(:focus-visible) {
-  outline: none;
-}
+:focus:not(:focus-visible) { outline: none; }
 
 /* Scrollbar styling (webkit) */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1; /* slate-300 */
+  background: var(--gray-100);
   border-radius: 9999px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8; /* slate-400 */
-}
+::-webkit-scrollbar-thumb:hover { background: var(--blue-700); }
 
 /* ================================================================
    UTILITIES
    ================================================================ */
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
+.font-mono-brand {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-weight: 700;
+}
+
+/* ================================================================
+   BRAND COMPONENTS
+   ================================================================ */
+
+/* Logo "P" icon with dashed parking-line border */
+.pm-logo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--yellow-400);
+  border: 2px dashed var(--white);
+  color: var(--blue-900);
+  font-weight: 800;
+  border-radius: var(--radius-sm);
+}
+
+/* Parking-line pattern (used in login background) */
+.pm-parking-pattern {
+  background-color: var(--blue-900);
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0,
+      transparent 38px,
+      rgba(255, 215, 0, 0.04) 38px,
+      rgba(255, 215, 0, 0.04) 40px,
+      transparent 40px,
+      transparent 78px,
+      rgba(255, 255, 255, 0.025) 78px,
+      rgba(255, 255, 255, 0.025) 80px
+    );
+}
+
+/* Modal overlay with blur */
+.pm-overlay {
+  background-color: rgba(15, 26, 110, 0.5);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* Card base */
+.pm-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ================================================================
+   ANIMATIONS
+   ================================================================ */
+@keyframes pm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pm-slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.pm-animate-fade-in   { animation: pm-fade-in   0.15s ease-out; }
+.pm-animate-slide-up  { animation: pm-slide-up  0.2s  ease-out; }
+
+@keyframes pm-pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55); }
+  50%      { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.0); }
+}
+.pm-animate-pulse-border {
+  animation: pm-pulse-border 2s ease-in-out infinite;
 }
 
 /* ================================================================
    PRINT STYLES — Recibo de impresora térmica 80mm
    ================================================================ */
 @media print {
-  /* Hide everything */
-  * {
-    visibility: hidden !important;
-  }
-
-  /* Show only the print receipt */
+  * { visibility: hidden !important; }
   .print-receipt,
-  .print-receipt * {
-    visibility: visible !important;
-  }
-
+  .print-receipt * { visibility: visible !important; }
   .print-receipt {
     position: fixed !important;
     top: 0 !important;
@@ -104,9 +179,5 @@ body {
     background: white !important;
     color: black !important;
   }
-
-  @page {
-    size: 80mm auto;
-    margin: 0;
-  }
+  @page { size: 80mm auto; margin: 0; }
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Bike, CheckCircle, AlertCircle } from 'lucide-react'
+import { X, CheckCircle, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import {
@@ -30,27 +30,20 @@ interface Props {
 
 const TIPOS: TarifaTipo[] = ['hora', 'dia', 'mensualidad']
 
-interface MensActiva {
-  fecha_vencimiento: string
-}
+interface MensActiva { fecha_vencimiento: string }
 
 export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose, onConfirm }: Props) {
   const { nombreParqueadero, direccion } = useConfig()
 
-  const [placa,       setPlaca]       = useState('')
-  const [tipo,        setTipo]        = useState<TarifaTipo>(tipoForzado ?? 'hora')
-  const [propietario, setPropietario] = useState('')
-  const [telefono,    setTelefono]    = useState('')
-  const [notas,       setNotas]       = useState('')
-  const [loading,     setLoading]     = useState(false)
-
-  // null = aún no se ha buscado / no aplica
-  // undefined = no encontrada (nueva mensualidad)
-  // {...} = mensualidad activa encontrada
-  const [mensActiva,   setMensActiva]   = useState<MensActiva | null | undefined>(null)
+  const [placa,        setPlaca]       = useState('')
+  const [tipo,         setTipo]        = useState<TarifaTipo>(tipoForzado ?? 'hora')
+  const [propietario,  setPropietario] = useState('')
+  const [telefono,     setTelefono]    = useState('')
+  const [notas,        setNotas]       = useState('')
+  const [loading,      setLoading]     = useState(false)
+  const [mensActiva,   setMensActiva]  = useState<MensActiva | null | undefined>(null)
   const [checkingMens, setCheckingMens] = useState(false)
 
-  // Verifica si hay mensualidad vigente (fecha_vencimiento > hoy) para esta placa
   useEffect(() => {
     if (tipo !== 'mensualidad' || placa.trim().length < 3) {
       setMensActiva(null)
@@ -81,18 +74,12 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
     const esMensualidad = tipo === 'mensualidad'
     const tieneActiva   = esMensualidad && !!mensActiva
 
-    // Mensualista vigente → entrada sin cobro
-    // Nueva mensualidad → cobrar y asignar vencimiento
-    const monto = esMensualidad
-      ? (tieneActiva ? 0 : tarifasMap.mensualidad)
-      : undefined
+    const monto = esMensualidad ? (tieneActiva ? 0 : tarifasMap.mensualidad) : undefined
     const vencimiento = esMensualidad && !tieneActiva
       ? addDias(new Date(), 30).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
       : undefined
 
     setLoading(true)
-
-    // Número de tiquete
     const { data: numData, error: numError } = await supabase.rpc('siguiente_tiquete')
     if (numError) {
       toast.error('Error generando número de tiquete')
@@ -113,17 +100,15 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
       fecha_vencimiento: vencimiento,
       numero_tiquete:    numeroTiquete,
     })
-
     setLoading(false)
 
     if (ok) {
-      // Imprimir tiquete de entrada
       const html = generarTiqueteEntrada({
         numeroTiquete,
-        placa:             normalizarPlaca(placa),
+        placa:        normalizarPlaca(placa),
         espacio,
         tipo,
-        horaEntrada:       new Date(),
+        horaEntrada:  new Date(),
         nombreParqueadero,
         direccion,
       })
@@ -133,7 +118,6 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
     }
   }
 
-  // Texto del botón principal
   const botonLabel = (() => {
     if (loading) return 'Registrando…'
     if (tipo !== 'mensualidad') return 'Registrar entrada'
@@ -143,31 +127,44 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
 
   return (
     <Overlay onClose={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+      <div
+        className="bg-white w-full max-w-md pm-animate-slide-up overflow-hidden"
+        style={{
+          maxWidth: 480,
+          width: '90vw',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-lg)',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
-              <Bike size={20} className="text-orange-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Registrar Entrada</h2>
-              <p className="text-sm text-slate-500">
-                Espacio <span className="font-bold text-orange-600">#{espacio}</span>
-              </p>
-            </div>
+        <div
+          className="flex items-center justify-between px-6 py-5"
+          style={{
+            backgroundColor: 'var(--blue-700)',
+            color: 'var(--white)',
+          }}
+        >
+          <div>
+            <h2 className="text-base font-bold leading-none">Registrar entrada</h2>
+            <p className="text-[12px] mt-1.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              Espacio <span className="font-bold" style={{ color: 'var(--yellow-400)' }}>#{espacio}</span>
+            </p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+          <button
+            onClick={onClose}
+            style={{ color: 'rgba(255,255,255,0.7)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--white)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.7)')}
+          >
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Placa */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">
-              Placa <span className="text-red-500">*</span>
-            </label>
+          <Field label="Placa" required>
             <input
               type="text"
               value={placa}
@@ -176,64 +173,104 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
               required
               autoFocus
               maxLength={10}
-              style={{ textTransform: 'uppercase' }}
-              className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none text-lg font-bold uppercase tracking-widest"
+              className="pm-input pm-input-placa w-full"
+              style={inputStyle({ big: true })}
+              onFocus={inputFocus}
+              onBlur={inputBlur}
             />
-          </div>
+          </Field>
 
-          {/* Tipo de tarifa */}
+          {/* Tipo */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Tipo de tarifa</label>
-            <div className="grid grid-cols-3 gap-2">
-              {TIPOS.map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  disabled={!!tipoForzado && tipoForzado !== t}
-                  onClick={() => setTipo(t)}
-                  className={`py-3 px-2 rounded-xl border-2 text-sm font-semibold transition-all disabled:opacity-30 ${
-                    tipo === t
-                      ? 'border-orange-500 bg-orange-50 text-orange-700'
-                      : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <div>{TIPO_LABELS[t]}</div>
-                  <div className={`text-xs font-normal mt-0.5 ${tipo === t ? 'text-orange-500' : 'text-slate-400'}`}>
-                    {formatCOP(tarifasMap[t])}
-                  </div>
-                </button>
-              ))}
+            <label className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--blue-900)' }}>
+              Tipo de tarifa
+            </label>
+            <div className="flex gap-2 w-full">
+              {TIPOS.map(t => {
+                const active = tipo === t
+                const disabled = !!tipoForzado && tipoForzado !== t
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => setTipo(t)}
+                    className="flex-1 transition-all disabled:opacity-30 text-center"
+                    style={{
+                      padding: 12,
+                      borderRadius: 'var(--radius-sm)',
+                      border: active ? '1.5px solid var(--blue-700)' : '1.5px solid var(--gray-100)',
+                      backgroundColor: active ? 'var(--blue-700)' : 'var(--white)',
+                      color: active ? 'var(--white)' : 'var(--gray-600)',
+                      fontWeight: active ? 600 : 500,
+                      fontSize: 13,
+                    }}
+                  >
+                    <div>{TIPO_LABELS[t]}</div>
+                    <div
+                      className="text-[11px] font-normal mt-1"
+                      style={{ color: active ? 'rgba(255,255,255,0.75)' : 'var(--gray-400)' }}
+                    >
+                      {formatCOP(tarifasMap[t])}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
 
-            {/* Indicador de mensualidad */}
             {tipo === 'mensualidad' && (
-              <div className="mt-2">
+              <div className="mt-2.5">
                 {checkingMens && (
-                  <div className="px-3 py-2 text-xs text-slate-400">Verificando mensualidad…</div>
+                  <div className="text-[12px]" style={{ color: 'var(--gray-400)' }}>
+                    Verificando mensualidad…
+                  </div>
                 )}
 
                 {!checkingMens && mensActiva && (
-                  <div className="flex items-center gap-2 px-3 py-2.5 bg-green-50 border-2 border-green-300 rounded-xl text-sm text-green-800">
-                    <CheckCircle size={16} className="shrink-0 text-green-600" />
+                  <div
+                    className="flex items-center gap-2 px-3 py-2.5 text-[13px]"
+                    style={{
+                      backgroundColor: '#DCFCE7',
+                      color: '#15803D',
+                      border: '1px solid #86EFAC',
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                  >
+                    <CheckCircle size={15} className="shrink-0" />
                     <span>
-                      <strong>Mensualista activo</strong>
-                      {' '}hasta {new Date(mensActiva.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-CO')}
+                      <strong>Mensualista activo</strong>{' '}hasta{' '}
+                      {new Date(mensActiva.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-CO')}
                     </span>
                   </div>
                 )}
 
                 {!checkingMens && mensActiva === undefined && placa.trim().length >= 3 && (
-                  <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 border-2 border-amber-300 rounded-xl text-sm text-amber-800">
-                    <AlertCircle size={16} className="shrink-0 text-amber-600" />
+                  <div
+                    className="flex items-center gap-2 px-3 py-2.5 text-[13px]"
+                    style={{
+                      backgroundColor: '#FEF9C3',
+                      color: '#854D0E',
+                      border: '1px solid #FDE68A',
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                  >
+                    <AlertCircle size={15} className="shrink-0" />
                     <span>
-                      <strong>Nueva mensualidad:</strong>
-                      {' '}{formatCOP(tarifasMap.mensualidad)} · vence en 30 días
+                      <strong>Nueva mensualidad:</strong>{' '}
+                      {formatCOP(tarifasMap.mensualidad)} · vence en 30 días
                     </span>
                   </div>
                 )}
 
                 {!checkingMens && mensActiva === null && (
-                  <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500">
+                  <div
+                    className="px-3 py-2 text-[12px]"
+                    style={{
+                      color: 'var(--gray-400)',
+                      backgroundColor: 'var(--gray-50)',
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                  >
                     Escribe la placa para verificar mensualidad
                   </div>
                 )}
@@ -241,71 +278,83 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
             )}
           </div>
 
-          {/* Propietario */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">
-              Nombre <span className="text-slate-400 font-normal">(opcional)</span>
-            </label>
+          {/* Nombre */}
+          <Field label="Nombre" optional>
             <input
               type="text"
               value={propietario}
               onChange={e => setPropietario(e.target.value)}
               placeholder="Nombre del cliente"
-              className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none"
+              className="w-full"
+              style={inputStyle()}
+              onFocus={inputFocus}
+              onBlur={inputBlur}
             />
-          </div>
+          </Field>
 
           {/* Teléfono */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">
-              Teléfono <span className="text-slate-400 font-normal">(opcional)</span>
-            </label>
+          <Field label="Teléfono" optional>
             <input
               type="tel"
               value={telefono}
               onChange={e => setTelefono(e.target.value)}
               placeholder="300 000 0000"
-              className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none"
+              className="w-full"
+              style={inputStyle()}
+              onFocus={inputFocus}
+              onBlur={inputBlur}
             />
-          </div>
+          </Field>
 
           {/* Notas */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">
-              Notas <span className="text-slate-400 font-normal">(opcional)</span>
-            </label>
+          <Field label="Notas" optional>
             <textarea
               value={notas}
               onChange={e => setNotas(e.target.value)}
-              placeholder="Sin placa, cliente frecuente, pago pendiente…"
+              placeholder="Observaciones…"
               rows={2}
-              className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:outline-none resize-none text-sm"
+              className="w-full resize-none"
+              style={inputStyle()}
+              onFocus={inputFocus}
+              onBlur={inputBlur}
             />
-          </div>
+          </Field>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+              className="flex-1 font-semibold transition-colors"
+              style={{
+                padding: '13px 24px',
+                border: '1.5px solid var(--gray-100)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--gray-400)',
+                backgroundColor: 'transparent',
+                fontSize: 14,
+              }}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading || !placa.trim() || (tipo === 'mensualidad' && checkingMens)}
-              className={`flex-1 py-3 rounded-xl text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-                tipo === 'mensualidad' && mensActiva
-                  ? 'bg-green-600 hover:bg-green-700'
-                  : 'bg-orange-500 hover:bg-orange-600'
-              }`}
+              className="flex-1 font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                padding: '13px 24px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: tipo === 'mensualidad' && mensActiva ? 'var(--success)' : 'var(--yellow-400)',
+                color: tipo === 'mensualidad' && mensActiva ? 'var(--white)' : 'var(--blue-900)',
+                fontSize: 15,
+                border: 'none',
+              }}
             >
               {botonLabel}
             </button>
           </div>
 
-          <p className="text-center text-xs text-slate-400">
+          <p className="text-center text-[11px]" style={{ color: 'var(--gray-400)' }}>
             El tiquete se imprime automáticamente al confirmar
           </p>
         </form>
@@ -314,10 +363,64 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
   )
 }
 
+// ── Shared helpers ─────────────────────────────────────────────────────────────
+
+function Field({
+  label,
+  required,
+  optional,
+  children,
+}: {
+  label: string
+  required?: boolean
+  optional?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div>
+      <label className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--blue-900)' }}>
+        {label}
+        {required && <span style={{ color: 'var(--danger)' }}> *</span>}
+        {optional && (
+          <span className="font-normal ml-1" style={{ color: 'var(--gray-400)' }}>
+            (opcional)
+          </span>
+        )}
+      </label>
+      {children}
+    </div>
+  )
+}
+
+function inputStyle({ big }: { big?: boolean } = {}): React.CSSProperties {
+  return {
+    border: '1.5px solid var(--gray-100)',
+    borderRadius: 'var(--radius-sm)',
+    padding: big ? '14px 16px' : '10px 14px',
+    fontSize: big ? 19 : 15,
+    fontWeight: big ? 700 : 400,
+    letterSpacing: big ? '0.08em' : 'normal',
+    textTransform: big ? ('uppercase' as const) : ('none' as const),
+    outline: 'none',
+    transition: 'var(--transition)',
+    color: 'var(--blue-900)',
+    fontFamily: big ? '"JetBrains Mono", "Courier New", monospace' : 'inherit',
+  }
+}
+
+function inputFocus(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  e.currentTarget.style.borderColor = 'var(--blue-700)'
+  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(27,47,190,0.1)'
+}
+function inputBlur(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  e.currentTarget.style.borderColor = 'var(--gray-100)'
+  e.currentTarget.style.boxShadow = 'none'
+}
+
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 pm-overlay pm-animate-fade-in"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       {children}

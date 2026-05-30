@@ -23,8 +23,17 @@ function ProtectedRoute() {
 
   if (session === undefined) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: 'var(--blue-900)' }}
+      >
+        <div
+          className="w-8 h-8 border-4 rounded-full animate-spin"
+          style={{
+            borderColor: 'var(--yellow-400)',
+            borderTopColor: 'transparent',
+          }}
+        />
       </div>
     )
   }
@@ -42,10 +51,25 @@ export default function App() {
   return (
     <BrowserRouter>
       <Toaster
-        position="top-right"
+        position="bottom-right"
         toastOptions={{
           duration: 3500,
-          style: { fontFamily: 'inherit', fontSize: '14px', fontWeight: 500 },
+          style: {
+            fontFamily: 'inherit',
+            fontSize: '14px',
+            fontWeight: 500,
+            background: 'var(--blue-900)',
+            color: '#ffffff',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-md)',
+          },
+          success: {
+            iconTheme: { primary: 'var(--yellow-400)', secondary: 'var(--blue-900)' },
+          },
+          error: {
+            style: { background: 'var(--danger)', color: '#ffffff' },
+            iconTheme: { primary: '#ffffff', secondary: 'var(--danger)' },
+          },
         }}
       />
 
