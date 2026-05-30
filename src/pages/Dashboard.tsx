@@ -95,7 +95,7 @@ export default function Dashboard() {
       {/* Mobile expandable search overlay */}
       {mobileSearchOpen && (
         <div
-          className="lg:hidden sticky top-14 z-30 bg-white px-3 py-2 flex items-center gap-2 pm-animate-fade-in"
+          className="md:hidden sticky top-14 z-30 bg-white px-3 py-2 flex items-center gap-2 pm-animate-fade-in"
           style={{ borderBottom: '1px solid var(--gray-100)' }}
         >
           <div className="relative flex-1">
@@ -132,25 +132,25 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="p-3 lg:p-6">
+      <div className="p-3 md:p-6">
         <PageHeader title="Parqueadero" right={mobileControls} />
 
         {/* Stats row — 3 cols always */}
-        <div className="grid grid-cols-3 gap-2 lg:gap-4 mb-4 lg:mb-6">
+        <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
           <StatCard
-            icon={<LayoutGrid className="w-4 h-4 lg:w-5 lg:h-5" style={{ color: 'var(--blue-900)' }} />}
+            icon={<LayoutGrid className="w-4 h-4 md:w-5 md:h-5" style={{ color: 'var(--blue-900)' }} />}
             label="TOTAL"
             value={espacios.length}
             accent="yellow"
           />
           <StatCard
-            icon={<Bike className="w-4 h-4 lg:w-5 lg:h-5" style={{ color: 'var(--blue-700)' }} />}
+            icon={<Bike className="w-4 h-4 md:w-5 md:h-5" style={{ color: 'var(--blue-700)' }} />}
             label="OCUPADOS"
             value={ocupados}
             accent="blue"
           />
           <StatCard
-            icon={<CheckCircle2 className="w-4 h-4 lg:w-5 lg:h-5" style={{ color: 'var(--success)' }} />}
+            icon={<CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" style={{ color: 'var(--success)' }} />}
             label="LIBRES"
             value={libres}
             accent="green"
@@ -159,7 +159,7 @@ export default function Dashboard() {
 
         {hoyCobrado !== null && (
           <div
-            className="mb-4 lg:mb-5 px-4 py-2.5 lg:px-5 lg:py-3 flex items-center justify-between"
+            className="mb-4 md:mb-5 px-4 py-2.5 md:px-5 md:py-3 flex items-center justify-between"
             style={{
               backgroundColor: 'var(--white)',
               border: '1px solid var(--gray-100)',
@@ -168,12 +168,12 @@ export default function Dashboard() {
             }}
           >
             <span
-              className="text-[10px] lg:text-xs font-semibold uppercase tracking-wider"
+              className="text-[10px] md:text-xs font-semibold uppercase tracking-wider"
               style={{ color: 'var(--gray-400)' }}
             >
               Cobrado hoy
             </span>
-            <span className="text-base lg:text-xl font-extrabold" style={{ color: 'var(--blue-900)' }}>
+            <span className="text-base md:text-xl font-extrabold" style={{ color: 'var(--blue-900)' }}>
               {formatCOP(hoyCobrado)}
             </span>
           </div>
@@ -307,16 +307,16 @@ function StatCard({
 
   return (
     <div
-      className="bg-white flex flex-col lg:flex-row lg:items-center gap-1.5 lg:gap-4 p-3 lg:p-5"
+      className="bg-white flex flex-col md:flex-row md:items-center gap-1.5 md:gap-4 p-3 md:p-5"
       style={{
         borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow-sm)',
         borderLeft: `4px solid ${accentColor}`,
       }}
     >
-      <div className="flex items-center gap-1.5 lg:gap-0">
+      <div className="flex items-center gap-1.5 md:gap-0">
         <div
-          className="hidden lg:flex shrink-0 items-center justify-center"
+          className="hidden md:flex shrink-0 items-center justify-center"
           style={{
             width: 44, height: 44,
             borderRadius: 'var(--radius-md)',
@@ -325,9 +325,9 @@ function StatCard({
         >
           {icon}
         </div>
-        <div className="lg:hidden">{icon}</div>
+        <div className="md:hidden">{icon}</div>
         <div
-          className="lg:hidden text-[10px] font-semibold uppercase truncate"
+          className="md:hidden text-[10px] font-semibold uppercase truncate"
           style={{ color: 'var(--gray-400)', letterSpacing: '0.05em' }}
         >
           {label}
@@ -335,13 +335,13 @@ function StatCard({
       </div>
       <div className="min-w-0">
         <div
-          className="hidden lg:block text-[11px] font-semibold uppercase mb-1"
+          className="hidden md:block text-[11px] font-semibold uppercase mb-1"
           style={{ color: 'var(--gray-400)', letterSpacing: '0.06em' }}
         >
           {label}
         </div>
         <div
-          className="text-2xl lg:text-3xl font-extrabold leading-none tabular-nums"
+          className="text-2xl md:text-3xl font-extrabold leading-none tabular-nums"
           style={{ color: valueColor }}
         >
           {value}

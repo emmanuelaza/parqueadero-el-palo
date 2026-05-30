@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm install *)",
       "Bash(npx tsc *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(cd \"c:\\\\el palo parking\" && npm run dev > /tmp/vite.log 2>&1 & *)",
+      "Read(//tmp/**)",
+      "Bash(grep -oE \"\\\\.lg\\\\\\\\\\\\\\\\:|@media[^{]*1024\" *.css)"
     ]
   }
 }

@@ -270,8 +270,8 @@ export default function SalidaModal({ moto, tarifasMap, onClose, onConfirm }: Pr
             />
           </div>
 
-          {/* Actions: stacked on mobile, row on desktop */}
-          <div className="flex flex-col-reverse sm:flex-row gap-2 sticky bottom-0 bg-white pt-3 -mx-6 px-6 -mb-6 pb-6 sm:static sm:bg-transparent sm:pt-0 sm:mx-0 sm:px-0 sm:mb-0 sm:pb-0" style={{ borderTop: '1px solid var(--gray-50)' }}>
+          {/* Actions: stacked on mobile (primary at bottom), row on desktop */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
             <button
               type="button"
               onClick={onClose}

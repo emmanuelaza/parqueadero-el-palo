@@ -23,11 +23,11 @@ export default function CajaDelDia() {
     <>
       <Topbar title="Caja" />
 
-      <div className="p-3 lg:p-6 max-w-6xl">
+      <div className="p-3 md:p-6 max-w-6xl">
         <PageHeader title="Caja" />
 
         {/* Tabs */}
-        <div className="flex gap-4 lg:gap-6 mb-4 lg:mb-6 overflow-x-auto" style={{ borderBottom: '1px solid var(--gray-100)' }}>
+        <div className="flex gap-4 md:gap-6 mb-4 md:mb-6 overflow-x-auto" style={{ borderBottom: '1px solid var(--gray-100)' }}>
           {([
             { key: 'hoy',    label: 'Hoy'         },
             { key: 'semana', label: 'Esta semana' },
@@ -38,7 +38,7 @@ export default function CajaDelDia() {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className="pb-3 text-[13px] lg:text-sm transition-colors whitespace-nowrap"
+                className="pb-3 text-[13px] md:text-sm transition-colors whitespace-nowrap"
                 style={{
                   color: active ? 'var(--blue-700)' : 'var(--gray-400)',
                   fontWeight: active ? 600 : 500,
@@ -141,7 +141,7 @@ function TabHoy() {
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 mb-4 lg:mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
         <KpiCard
           icon={<DollarSign size={20} style={{ color: 'var(--blue-700)' }} />}
           label="TOTAL"
@@ -173,27 +173,27 @@ function TabHoy() {
       </div>
 
       {/* Desglose por tipo */}
-      <Card className="mb-4 lg:mb-5">
-        <h2 className="text-sm font-bold mb-3 lg:mb-4" style={{ color: 'var(--blue-900)' }}>
+      <Card className="mb-4 md:mb-5">
+        <h2 className="text-sm font-bold mb-3 md:mb-4" style={{ color: 'var(--blue-900)' }}>
           Desglose por tipo de tarifa
         </h2>
-        <div className="grid grid-cols-3 gap-2 lg:gap-4">
+        <div className="grid grid-cols-3 gap-2 md:gap-4">
           {resumenPorTipo.map(r => (
             <div
               key={r.tipo}
-              className="text-center p-2 lg:p-3"
+              className="text-center p-2 md:p-3"
               style={{ backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius-md)' }}
             >
               <div
-                className="text-[10px] lg:text-[11px] font-semibold uppercase mb-1"
+                className="text-[10px] md:text-[11px] font-semibold uppercase mb-1"
                 style={{ color: 'var(--gray-400)', letterSpacing: '0.06em' }}
               >
                 {TIPO_LABELS[r.tipo]}
               </div>
-              <div className="text-lg lg:text-xl font-extrabold" style={{ color: 'var(--blue-900)' }}>
+              <div className="text-lg md:text-xl font-extrabold" style={{ color: 'var(--blue-900)' }}>
                 {r.cantidad}
               </div>
-              <div className="text-[12px] lg:text-[13px] mt-0.5 lg:mt-1 truncate" style={{ color: 'var(--gray-600)' }}>
+              <div className="text-[12px] md:text-[13px] mt-0.5 md:mt-1 truncate" style={{ color: 'var(--gray-600)' }}>
                 {formatCOP(r.total)}
               </div>
             </div>
@@ -203,7 +203,7 @@ function TabHoy() {
 
       {/* Movimientos */}
       <Card>
-        <div className="flex items-center justify-between mb-3 lg:mb-4">
+        <div className="flex items-center justify-between mb-3 md:mb-4">
           <h2 className="text-sm font-bold" style={{ color: 'var(--blue-900)' }}>
             Movimientos de hoy
           </h2>
@@ -285,7 +285,7 @@ function TabHoy() {
 
       {/* Cerrar caja */}
       {!cierre && (
-        <div className="flex justify-end mt-5 lg:mt-6">
+        <div className="flex justify-end mt-5 md:mt-6">
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center justify-center gap-2 font-bold transition-colors text-[14px] w-full sm:w-auto"
@@ -570,7 +570,7 @@ function ModalCerrarCaja({
             </div>
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <button
               onClick={onClose}
               className="font-semibold transition-colors text-sm sm:flex-1"
@@ -635,7 +635,7 @@ function KpiCard({
 }) {
   return (
     <div
-      className="bg-white flex items-center gap-2.5 lg:gap-3 p-3 lg:p-[18px]"
+      className="bg-white flex items-center gap-2.5 md:gap-3 p-3 md:p-[18px]"
       style={{
         borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow-sm)',
@@ -654,13 +654,13 @@ function KpiCard({
       </div>
       <div className="min-w-0">
         <div
-          className="text-[9px] lg:text-[10px] font-semibold uppercase mb-0.5 lg:mb-1 truncate"
+          className="text-[9px] md:text-[10px] font-semibold uppercase mb-0.5 md:mb-1 truncate"
           style={{ color: 'var(--gray-400)', letterSpacing: '0.05em' }}
         >
           {label}
         </div>
         <div
-          className="text-base lg:text-xl font-extrabold leading-none tabular-nums truncate"
+          className="text-base md:text-xl font-extrabold leading-none tabular-nums truncate"
           style={{ color: valueColor }}
         >
           {value}

@@ -37,24 +37,24 @@ function LayoutInner() {
       {open && (
         <div
           onClick={() => setOpen(false)}
-          className="fixed inset-0 z-40 lg:hidden bg-black/50 pm-animate-fade-in"
+          className="fixed inset-0 z-40 md:hidden bg-black/50 pm-animate-fade-in"
         />
       )}
 
       {/* ───────── Sidebar ───────── */}
       <aside
         className={`
-          fixed lg:relative z-50 lg:z-auto top-0 left-0 h-full
-          w-[280px] lg:w-60 shrink-0 flex flex-col text-white
+          fixed md:relative z-50 md:z-auto top-0 left-0 h-full
+          w-[280px] md:w-60 shrink-0 flex flex-col text-white
           transition-transform duration-200 ease-out
-          ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
         style={{ backgroundColor: 'var(--blue-900)' }}
       >
         {/* Mobile close button */}
         <button
           onClick={() => setOpen(false)}
-          className="lg:hidden absolute top-4 right-4 p-1.5"
+          className="md:hidden absolute top-4 right-4 p-1.5"
           style={{ color: 'rgba(255,255,255,0.7)' }}
           aria-label="Cerrar menú"
         >
@@ -144,7 +144,7 @@ function LayoutInner() {
       </aside>
 
       {/* ───────── Main ───────── */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden">
+      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden w-full">
         <Outlet />
       </main>
     </div>

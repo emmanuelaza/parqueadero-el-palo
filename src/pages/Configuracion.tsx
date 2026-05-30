@@ -31,11 +31,11 @@ export default function Configuracion() {
     <>
       <Topbar title="Configuración" />
 
-      <div className="p-3 lg:p-6 max-w-3xl">
+      <div className="p-3 md:p-6 max-w-3xl">
         <PageHeader title="Configuración" subtitle="Ajustes generales, tarifas y horarios" />
 
         {/* Tabs */}
-        <div className="flex gap-4 lg:gap-6 mb-6 lg:mb-8 overflow-x-auto" style={{ borderBottom: '1px solid var(--gray-100)' }}>
+        <div className="flex gap-4 md:gap-6 mb-6 md:mb-8 overflow-x-auto" style={{ borderBottom: '1px solid var(--gray-100)' }}>
           {([
             { key: 'general',  icon: SlidersHorizontal, label: 'General'  },
             { key: 'tarifas',  icon: DollarSign,        label: 'Tarifas'  },

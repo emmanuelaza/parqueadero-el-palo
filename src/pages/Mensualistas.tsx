@@ -174,11 +174,11 @@ export default function Mensualistas() {
     <>
       <Topbar title="Mensualistas" right={desktopRight} />
 
-      <div className="p-3 lg:p-6 max-w-6xl pb-24 lg:pb-6">
+      <div className="p-3 md:p-6 max-w-6xl pb-24 md:pb-6">
         <PageHeader title="Mensualistas" subtitle={subtitle} right={mobileRight} />
 
         {/* Desktop subtitle */}
-        <p className="hidden lg:block text-sm mb-5" style={{ color: 'var(--gray-600)' }}>
+        <p className="hidden md:block text-sm mb-5" style={{ color: 'var(--gray-600)' }}>
           {subtitle}
         </p>
 
@@ -323,7 +323,7 @@ export default function Mensualistas() {
         <button
           onClick={abrirNuevaMensualista}
           aria-label="Nuevo mensualista"
-          className="lg:hidden fixed bottom-5 right-5 z-20 flex items-center justify-center"
+          className="md:hidden fixed bottom-5 right-5 z-20 flex items-center justify-center"
           style={{
             width: 56, height: 56,
             borderRadius: '50%',

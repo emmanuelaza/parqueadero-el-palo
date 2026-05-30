@@ -24,33 +24,33 @@ export default function Topbar({ title, right }: Props) {
 
   return (
     <header
-      className="h-14 lg:h-16 px-3 lg:px-6 flex items-center bg-white sticky top-0 z-30"
+      className="h-14 md:h-16 px-3 md:px-6 flex items-center gap-2 bg-white sticky top-0 z-30"
       style={{ borderBottom: '1px solid var(--gray-100)' }}
     >
-      {/* Hamburger (mobile/tablet only) */}
+      {/* Hamburger (mobile only) */}
       <button
         onClick={toggle}
-        className="lg:hidden p-2 -ml-1 mr-1 rounded-lg"
+        className="md:hidden p-2 -ml-1 rounded-lg shrink-0"
         style={{ color: 'var(--blue-900)', minWidth: 44, minHeight: 44 }}
         aria-label="Abrir menú"
       >
         <Menu size={22} />
       </button>
 
-      {/* Mobile brand OR Desktop title */}
+      {/* Title (brand on mobile, page title on tablet+) */}
       <h1
-        className="font-bold tracking-tight truncate flex-1 lg:flex-none lg:w-auto"
+        className="font-bold tracking-tight truncate flex-1 min-w-0"
         style={{ color: 'var(--blue-900)', fontSize: 'clamp(15px, 4vw, 18px)' }}
       >
-        <span className="lg:hidden">
+        <span className="md:hidden">
           PUNTO MOTO<span style={{ color: 'var(--yellow-400)' }}>.</span>
         </span>
-        <span className="hidden lg:inline">{title}</span>
+        <span className="hidden md:inline">{title}</span>
       </h1>
 
-      {/* Date+time (desktop centered) */}
+      {/* Date+time (desktop only — too tight on tablet) */}
       <div
-        className="hidden lg:block flex-1 text-center text-sm font-medium tabular-nums whitespace-nowrap"
+        className="hidden lg:flex flex-1 justify-center text-sm font-medium tabular-nums whitespace-nowrap"
         style={{ color: 'var(--gray-600)' }}
       >
         <span>{fechaCap}</span>
@@ -58,16 +58,18 @@ export default function Topbar({ title, right }: Props) {
         <span className="font-semibold" style={{ color: 'var(--blue-900)' }}>{hora}</span>
       </div>
 
-      {/* Mobile compact time */}
+      {/* Compact time (mobile and tablet) */}
       <div
-        className="lg:hidden text-[13px] font-semibold tabular-nums px-2"
+        className="lg:hidden text-[13px] font-semibold tabular-nums shrink-0"
         style={{ color: 'var(--blue-900)' }}
       >
         {hora}
       </div>
 
-      {/* Right slot (desktop only) */}
-      <div className="hidden lg:flex items-center gap-3 justify-end">{right}</div>
+      {/* Right slot (tablet and desktop) */}
+      <div className="hidden md:flex items-center gap-2 md:gap-3 justify-end shrink-0 min-w-0">
+        {right}
+      </div>
     </header>
   )
 }

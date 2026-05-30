@@ -92,7 +92,7 @@ export default function Historial() {
   const exportBtn = hasResults ? (
     <button
       onClick={exportarCSV}
-      className="flex items-center gap-1.5 font-semibold transition-colors text-[12px] lg:text-[13px]"
+      className="flex items-center gap-1.5 font-semibold transition-colors text-[12px] md:text-[13px]"
       style={{
         padding: '8px 14px',
         backgroundColor: 'var(--blue-700)',
@@ -112,18 +112,18 @@ export default function Historial() {
     <>
       <Topbar title="Historial" right={exportBtn} />
 
-      <div className="p-3 lg:p-6 max-w-6xl">
+      <div className="p-3 md:p-6 max-w-6xl">
         <PageHeader title="Historial" subtitle="Registros de entrada/salida" right={exportBtn} />
 
         {/* Filters card */}
         <div
-          className="bg-white p-4 lg:p-5 mb-4 lg:mb-6"
+          className="bg-white p-4 md:p-5 mb-4 md:mb-6"
           style={{ borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)' }}
         >
           {/* Filters header — collapsible on mobile */}
           <button
             onClick={() => setFiltersOpen(o => !o)}
-            className="lg:cursor-default flex items-center justify-between w-full mb-3 lg:pointer-events-none"
+            className="md:cursor-default flex items-center justify-between w-full mb-3 md:pointer-events-none"
           >
             <div className="flex items-center gap-2">
               <Filter size={15} style={{ color: 'var(--blue-700)' }} />
@@ -131,14 +131,14 @@ export default function Historial() {
                 Filtros
               </span>
             </div>
-            <span className="lg:hidden" style={{ color: 'var(--gray-400)' }}>
+            <span className="md:hidden" style={{ color: 'var(--gray-400)' }}>
               {filtersOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </span>
           </button>
 
           {/* Filter inputs */}
-          <div className={`${filtersOpen ? 'block' : 'hidden'} lg:block`}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
+          <div className={`${filtersOpen ? 'block' : 'hidden'} md:block`}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
               <FilterInput
                 type="text" value={placa} placeholder="Buscar placa…"
                 onChange={setPlaca} onKeyEnter={() => buscar(0)}
@@ -195,14 +195,14 @@ export default function Historial() {
             style={{ borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)' }}
           >
             <div
-              className="p-3 lg:p-4 flex items-center justify-between"
+              className="p-3 md:p-4 flex items-center justify-between"
               style={{ borderBottom: '1px solid var(--gray-50)' }}
             >
-              <span className="text-[13px] lg:text-sm" style={{ color: 'var(--gray-600)' }}>
+              <span className="text-[13px] md:text-sm" style={{ color: 'var(--gray-600)' }}>
                 {loading ? 'Cargando…' : `${total.toLocaleString('es-CO')} resultado${total !== 1 ? 's' : ''}`}
               </span>
               {totalPaginas > 1 && (
-                <div className="flex items-center gap-1 lg:gap-2 text-[13px] lg:text-sm">
+                <div className="flex items-center gap-1 md:gap-2 text-[13px] md:text-sm">
                   <button
                     onClick={() => buscar(page - 1)}
                     disabled={page === 0 || loading}
@@ -350,7 +350,7 @@ export default function Historial() {
         )}
 
         {!buscado && (
-          <div className="text-center py-12 lg:py-16" style={{ color: 'var(--gray-400)' }}>
+          <div className="text-center py-12 md:py-16" style={{ color: 'var(--gray-400)' }}>
             <Search size={32} className="mx-auto mb-3 opacity-40" />
             <p className="text-sm">Usa los filtros y presiona <strong>Buscar</strong></p>
           </div>

@@ -8,7 +8,7 @@ interface Props {
  * On desktop the title lives in the Topbar; on mobile we re-show it here. */
 export default function PageHeader({ title, subtitle, right }: Props) {
   return (
-    <div className="lg:hidden flex items-start justify-between gap-3 mb-4">
+    <div className="md:hidden flex items-start justify-between gap-3 mb-4">
       <div className="min-w-0 flex-1">
         <h2
           className="text-xl font-extrabold leading-tight tracking-tight truncate"

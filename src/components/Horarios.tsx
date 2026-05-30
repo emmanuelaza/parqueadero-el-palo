@@ -63,103 +63,120 @@ function HorarioRow({ horario, onRecargar }: { horario: Horario; onRecargar: () 
 
   return (
     <div
-      className="p-4 flex items-center gap-4 transition-colors"
+      className="p-3 sm:p-4 transition-colors"
       style={{
         backgroundColor: activo ? 'var(--white)' : 'var(--gray-50)',
         border: '1px solid var(--gray-100)',
         borderRadius: 'var(--radius-md)',
-        opacity: activo ? 1 : 0.6,
+        opacity: activo ? 1 : 0.7,
       }}
     >
-      <div className="w-24 shrink-0">
+      {/* Row 1: Day + toggle */}
+      <div className="flex items-center justify-between gap-3 mb-2 sm:mb-0 sm:hidden">
         <span
           className="font-bold text-sm"
-          style={{ color: isWeekend ? 'var(--yellow-400)' : 'var(--blue-900)' }}
+          style={{ color: isWeekend ? '#854D0E' : 'var(--blue-900)' }}
         >
           {DIAS_SEMANA[horario.dia_semana]}
         </span>
+        <button
+          onClick={() => { setActivo(!activo); setEditando(true) }}
+          title={activo ? 'Desactivar' : 'Activar'}
+        >
+          {activo
+            ? <ToggleRight size={26} style={{ color: 'var(--success)' }} />
+            : <ToggleLeft  size={26} style={{ color: 'var(--gray-400)' }} />}
+        </button>
       </div>
 
-      <button
-        onClick={() => { setActivo(!activo); setEditando(true) }}
-        className="shrink-0"
-        title={activo ? 'Desactivar' : 'Activar'}
-      >
-        {activo
-          ? <ToggleRight size={22} style={{ color: 'var(--success)' }} />
-          : <ToggleLeft  size={22} style={{ color: 'var(--gray-400)' }} />}
-      </button>
-
-      {activo ? (
-        <div className="flex items-center gap-2 flex-1">
-          <label className="text-[12px] shrink-0" style={{ color: 'var(--gray-400)' }}>Apertura</label>
-          <input
-            type="time"
-            value={apertura}
-            onChange={e => { setApertura(e.target.value); setEditando(true) }}
-            style={{
-              padding: '6px 10px',
-              border: '1.5px solid var(--gray-100)',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: 13,
-              fontFamily: 'monospace',
-              outline: 'none',
-              color: 'var(--blue-900)',
-            }}
-          />
-          <span className="text-sm" style={{ color: 'var(--gray-400)' }}>–</span>
-          <label className="text-[12px] shrink-0" style={{ color: 'var(--gray-400)' }}>Cierre</label>
-          <input
-            type="time"
-            value={cierre}
-            onChange={e => { setCierre(e.target.value); setEditando(true) }}
-            style={{
-              padding: '6px 10px',
-              border: '1.5px solid var(--gray-100)',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: 13,
-              fontFamily: 'monospace',
-              outline: 'none',
-              color: 'var(--blue-900)',
-            }}
-          />
+      {/* Desktop: single row | Mobile: stacked */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+        {/* Day label (desktop only) */}
+        <div className="hidden sm:block w-24 shrink-0">
+          <span className="font-bold text-sm" style={{ color: isWeekend ? '#854D0E' : 'var(--blue-900)' }}>
+            {DIAS_SEMANA[horario.dia_semana]}
+          </span>
         </div>
-      ) : (
-        <span className="text-sm flex-1" style={{ color: 'var(--gray-400)' }}>Cerrado</span>
-      )}
 
-      {(editando || dirty) && (
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="flex items-center gap-1.5 font-bold transition-colors disabled:opacity-50 text-[12px]"
-            style={{
-              padding: '6px 12px',
-              backgroundColor: 'var(--yellow-400)',
-              color: 'var(--blue-900)',
-              borderRadius: 'var(--radius-sm)',
-              border: 'none',
-            }}
-          >
-            <Save size={12} />
-            {loading ? '…' : 'Guardar'}
-          </button>
-          <button
-            onClick={handleCancel}
-            className="font-semibold transition-colors text-[12px]"
-            style={{
-              padding: '6px 10px',
-              border: '1.5px solid var(--gray-100)',
-              color: 'var(--gray-400)',
-              backgroundColor: 'transparent',
-              borderRadius: 'var(--radius-sm)',
-            }}
-          >
-            Cancelar
-          </button>
-        </div>
-      )}
+        {/* Toggle (desktop only) */}
+        <button
+          onClick={() => { setActivo(!activo); setEditando(true) }}
+          className="hidden sm:block shrink-0"
+          title={activo ? 'Desactivar' : 'Activar'}
+        >
+          {activo
+            ? <ToggleRight size={22} style={{ color: 'var(--success)' }} />
+            : <ToggleLeft  size={22} style={{ color: 'var(--gray-400)' }} />}
+        </button>
+
+        {/* Times */}
+        {activo ? (
+          <div className="flex items-center gap-2 flex-1 flex-wrap">
+            <input
+              type="time"
+              value={apertura}
+              onChange={e => { setApertura(e.target.value); setEditando(true) }}
+              style={timeInputStyle}
+            />
+            <span className="text-sm" style={{ color: 'var(--gray-400)' }}>–</span>
+            <input
+              type="time"
+              value={cierre}
+              onChange={e => { setCierre(e.target.value); setEditando(true) }}
+              style={timeInputStyle}
+            />
+          </div>
+        ) : (
+          <span className="text-sm flex-1" style={{ color: 'var(--gray-400)' }}>Cerrado</span>
+        )}
+
+        {/* Save/Cancel */}
+        {(editando || dirty) && (
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              className="flex items-center gap-1.5 font-bold transition-colors disabled:opacity-50 text-[12px]"
+              style={{
+                padding: '8px 12px',
+                backgroundColor: 'var(--yellow-400)',
+                color: 'var(--blue-900)',
+                borderRadius: 'var(--radius-sm)',
+                border: 'none',
+                minHeight: 36,
+              }}
+            >
+              <Save size={12} />
+              {loading ? '…' : 'Guardar'}
+            </button>
+            <button
+              onClick={handleCancel}
+              className="font-semibold transition-colors text-[12px]"
+              style={{
+                padding: '8px 10px',
+                border: '1.5px solid var(--gray-100)',
+                color: 'var(--gray-400)',
+                backgroundColor: 'transparent',
+                borderRadius: 'var(--radius-sm)',
+                minHeight: 36,
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
+}
+
+const timeInputStyle: React.CSSProperties = {
+  padding: '8px 10px',
+  border: '1.5px solid var(--gray-100)',
+  borderRadius: 'var(--radius-sm)',
+  fontSize: 14,
+  fontFamily: 'monospace',
+  outline: 'none',
+  color: 'var(--blue-900)',
+  minHeight: 40,
 }

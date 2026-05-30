@@ -310,8 +310,8 @@ export default function EntradaModal({ espacio, tarifasMap, tipoForzado, onClose
             />
           </Field>
 
-          {/* Actions */}
-          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-1">
+          {/* Actions: stacked on mobile (primary at bottom), row on desktop */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-1">
             <button
               type="button"
               onClick={onClose}
